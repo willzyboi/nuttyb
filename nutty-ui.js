@@ -47,7 +47,7 @@ function limitCode(id){const value=config.limits[id];if(value===undefined||value
  return '\ndo for _,name in ipairs({'+names.map(x=>"'"+x+"'").join(',')+'}) do local u=UnitDefs[name] if u then u.maxthisunit='+(n===0?'nil':n)+' if u.customparams and u.customparams.i18n_en_tooltip then u.customparams.i18n_en_tooltip=u.customparams.i18n_en_tooltip:gsub("x%d+ Max","'+(n===0?'Unlimited':'x'+n+' Max')+'") end end end end\n';
 }
 function sourceFor(key){const {slot,source}=LUA_SOURCES[key];if(slot==='tweakdefs6'&&!config.enabled.CROSS_FACTION)return '';if(slot==='tweakdefs7'&&!config.enabled.UNIT_LAUNCHERS)return '';
- const blocks=markerBlocks(source);let result=blocks.length?blocks.filter(b=>selected(b.id)).map(b=>b.code+limitCode(b.id)).join('\n\n'):source;
+ const blocks=markerBlocks(source);let result=blocks.length?blocks.filter(b=>selected(b.id)&&b.id!=='STARFALL').map(b=>b.code+limitCode(b.id)).join('\n\n'):source;
  if(slot==='tweakdefs1'&&config.mode==='Raptors')result=hpSource('--HP_2X_QHP_2X\n'+result,config.raptorHP,config.queenHP);
  if(slot==='tweakdefs1'&&config.mode==='Scavengers')result=scavHealthSource()+result;
  if(slot==='tweakdefs7')result+=limitCode('UNIT_LAUNCHERS');
@@ -68,7 +68,26 @@ function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset t
 function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():part.commands.map((c,ci)=>{const key=pi+'/'+ci;return LUA_SOURCES[key]?slotCommand(LUA_SOURCES[key].slot,sourceFor(key)):c;}));
  // Slot zero reset belongs with its main payload. Every disabled slot gets an explicit reset.
  parts[1].unshift('!bset tweakunits 0');parts[4].push('!bset tweakdefs8 0');if(config.enabled.MEGA_NUKE)parts[4].push(slotCommand('tweakdefs8',REFERENCE_OPTIONS.mega));
- return parts.map(p=>p.join('\n'));
+ // Register Starfall last, after every other tweak has created or edited builders.
+ const starfall=markerBlocks(LUA_SOURCES['3/1'].source).find(b=>b.id==='STARFALL');
+ parts[4].push('!bset tweakdefs9 0',slotCommand('tweakdefs9',selected('STARFALL')?starfall.code+limitCode('STARFALL'):''));
+ return sixCopyParts(parts.flat());
+}
+function sixCopyParts(commands){
+ // Keep reset/payload pairs together; minimize the largest of six ordered pastes.
+ const groups=[];
+ for(let i=0;i<commands.length;i++){
+  let group=commands[i];const reset=group.match(/^!bset (tweak\w+) 0$/i);
+  if(reset&&commands[i+1]?.toLowerCase().startsWith('!bset '+reset[1].toLowerCase()+' '))group+='\n'+commands[++i];
+  groups.push(group);
+ }
+ const n=groups.length,prefix=[0];groups.forEach(g=>prefix.push(prefix.at(-1)+g.length+1));
+ const dp=Array.from({length:7},()=>Array(n+1).fill(Infinity)),cut=Array.from({length:7},()=>Array(n+1));dp[0][0]=0;
+ for(let k=1;k<=6;k++)for(let i=k;i<=n;i++)for(let j=k-1;j<i;j++){
+  const size=Math.max(dp[k-1][j],prefix[i]-prefix[j]);if(size<dp[k][i]){dp[k][i]=size;cut[k][i]=j;}
+ }
+ const result=[];let end=n;for(let k=6;k>0;k--){const begin=cut[k][end];result.unshift(groups.slice(begin,end).join('\n'));end=begin;}
+ return result;
 }
 function save(){try{localStorage.setItem('nutty-pink-v2',JSON.stringify(config));}catch{}outputs=generate();document.querySelectorAll('.part-preview[data-part]').forEach(e=>e.value=outputs[Number(e.dataset.part)]);copyButtons.forEach((b,i)=>b.textContent='Copy part '+(i+1));document.getElementById('status').textContent='Ready to copy.';}
 async function copy(text,button){let success=false;try{await navigator.clipboard.writeText(text);success=true;}catch{const manual=document.getElementById('manual');manual.hidden=false;manual.value=text;manual.focus();manual.select();try{success=document.execCommand('copy');}catch{}if(success)manual.hidden=true;}if(success){button.textContent='Copied ✓';document.getElementById('status').textContent='Copied. Paste into BAR lobby chat.';}else document.getElementById('status').textContent='Press Ctrl+C to copy the selected text.';}
@@ -86,7 +105,7 @@ function renderTweaks(){const root=document.getElementById('tweak-options');root
 }
 function renderLimits(){const root=document.getElementById('limits');root.replaceChildren();LIMITS.forEach(([id,name,defaultValue])=>{const label=el('label','limit'),text=el('span','',name);text.append(el('small','','Original: '+defaultValue+'/unit'));const input=el('input');input.type='number';input.min=0;input.step=1;input.placeholder='Default';input.value=config.limits[id]??'';input.setAttribute('aria-label',name+' maximum');input.addEventListener('input',()=>{if(input.value===''){delete config.limits[id];save();return;}const v=Number(input.value);if(Number.isInteger(v)&&v>=0){config.limits[id]=v;save();}});label.append(text,input);root.append(label);});}
 function renderSliders(){for(const id of ['resource-sliders','raptor-sliders'])document.getElementById(id).replaceChildren();SLIDERS.forEach(([name,label,min,max,step,parent])=>{const root=document.getElementById(parent),control=el('div','control'),title=el('label','',label),inputs=el('div','inputs'),slider=el('input'),number=el('input');slider.type='range';slider.min=min;slider.max=max;slider.step=step;slider.value=config.values[name];slider.setAttribute('aria-label',label+' slider');number.type='number';number.id=name+'-value';number.min=min;number.max=max;number.step=step;number.value=config.values[name];title.htmlFor=number.id;number.setAttribute('aria-label',label);function update(value){if(!Number.isFinite(value))return;config.values[name]=Number(Math.max(min,Math.min(max,value)).toFixed(2));slider.value=number.value=config.values[name];save();}slider.addEventListener('input',()=>update(Number(slider.value)));number.addEventListener('input',()=>{const value=Number(number.value);if(number.value!==''&&value>=min&&value<=max&&Number.isFinite(value)){config.values[name]=value;slider.value=value;save();}});number.addEventListener('change',()=>update(Number(number.value)));const plus=el('button','','+'),minus=el('button','','−');plus.setAttribute('aria-label','Increase '+label);minus.setAttribute('aria-label','Decrease '+label);plus.addEventListener('click',()=>update(config.values[name]+step));minus.addEventListener('click',()=>update(config.values[name]-step));inputs.append(slider,number,plus,minus);control.append(title,inputs);root.append(control);});}
-function renderOutputs(){const root=document.getElementById('generated');root.replaceChildren();const names=['Game settings','Main units & commanders','Raptors, builders & defenses','Epics & economy','Factories & launchers'];BASE_PARTS.forEach((_,i)=>{const row=el('div','copy-row'),side=el('div'),button=el('button','primary','Copy part '+(i+1));copyButtons[i]=button;button.addEventListener('click',()=>copy(outputs[i],button));side.append(button,el('p','hint',names[i]));const preview=el('textarea','part-preview');preview.dataset.part=i;preview.readOnly=true;preview.setAttribute('aria-label','Part '+(i+1)+' generated commands');row.append(side,preview);root.append(row);});}
+function renderOutputs(){const root=document.getElementById('generated');root.replaceChildren();Array.from({length:6}).forEach((_,i)=>{const row=el('div','copy-row'),side=el('div'),button=el('button','primary','Copy part '+(i+1));copyButtons[i]=button;button.addEventListener('click',()=>copy(outputs[i],button));side.append(button,el('p','hint','Settings & tweaks '+(i+1)+' of 6'));const preview=el('textarea','part-preview');preview.dataset.part=i;preview.readOnly=true;preview.setAttribute('aria-label','Part '+(i+1)+' generated commands');row.append(side,preview);root.append(row);});}
 function renderAll(){renderGame();renderTweaks();renderLimits();renderSliders();save();}
 document.getElementById('reset').addEventListener('click',()=>{config=defaults();renderAll();});
 document.getElementById('reset-game').addEventListener('click',()=>{const d=defaults();for(const name of ['mode','map','start','raptorHP','queenHP','scavHP','bossHP'])config[name]=d[name];renderGame();renderTweaks();save();});
