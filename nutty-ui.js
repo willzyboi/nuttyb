@@ -59,6 +59,7 @@ function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset t
  commands=commands.filter(c=>!/^!(map|addbox|clearbox|raptor_queentimemult|raptor_raptorstart|debugcommands|map_lavatiderhythm)\b/i.test(c));
  const mapCommands=map?.commands||[];if(mapCommands.some(c=>/^!teamsize /.test(c)))commands=commands.filter(c=>!/^!teamsize /.test(c));
  const at=commands.findIndex(c=>c.startsWith('$rename '));commands.splice(at<0?commands.length:at,0,...mapCommands,...(start?.commands||[]));
+ if(config.mode==='Raptors'){commands=commands.filter(c=>!/^!(addbox|clearbox)\b/i.test(c));commands.push('!clearbox 1','!clearbox 2','!addbox 0 0 200 200 1','!addbox 99 99 101 101 2');}
  if(config.mode==='Scavengers'){const at=commands.findIndex(c=>c.startsWith('!map '));commands.splice(at<0?0:at,0,...REFERENCE_OPTIONS.presets.scavengers);}
  if(config.start==='Zero Grace')commands.push('!raptor_graceperiodmult 0');
  if(config.start==='No Rush Solo')commands.push('!teamsize 1');
@@ -99,3 +100,4 @@ document.getElementById('download').addEventListener('click',()=>{const url=URL.
 document.getElementById('commands-tab').addEventListener('click',()=>{document.getElementById('configuration').hidden=true;document.getElementById('configuration-tab').classList.remove('active');document.getElementById('commands-tab').classList.add('active');document.getElementById('configuration-tab').setAttribute('aria-pressed','false');document.getElementById('commands-tab').setAttribute('aria-pressed','true');});
 document.getElementById('configuration-tab').addEventListener('click',()=>{document.getElementById('configuration').hidden=false;document.getElementById('commands-tab').classList.remove('active');document.getElementById('configuration-tab').classList.add('active');document.getElementById('configuration-tab').setAttribute('aria-pressed','true');document.getElementById('commands-tab').setAttribute('aria-pressed','false');});
 renderOutputs();renderAll();
+
