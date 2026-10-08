@@ -1,5 +1,5 @@
 function decodeLua(s) { return new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c=>c.charCodeAt(0))); }
-function encodeLua(s) { let b=''; for(const n of new TextEncoder().encode(s)) b+=String.fromCharCode(n); return btoa(b).replace(/=+$/,''); }
+function encodeLua(s) { let b=''; for(const n of new TextEncoder().encode(s)) b+=String.fromCharCode(n); return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 function numericFields(source) {
   // Tokenize before locating assignments: quoted text, comments and array indexes stay untouched.
   const re=/--\[(=*)\[[\s\S]*?\]\1\]|--[^\n]*|\[(=*)\[[\s\S]*?\]\2\]|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[A-Za-z_][\w]*|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|\S/g;
