@@ -54,14 +54,14 @@ function sourceFor(key){const {slot,source}=LUA_SOURCES[key];if(slot==='tweakdef
  return hasCode(result)?result:'';
 }
 function scavHealthSource(){if(!config.scavHP&&!config.bossHP)return '';return 'do local previous=UnitDef_Post function UnitDef_Post(name,u) if previous then previous(name,u) end if u.health then if name:match("^scavengerbossv4") then u.health=u.health*'+(config.bossHP||1)+' elseif name:match("_scav$") then u.health=u.health*'+(config.scavHP||1)+' end end end end\n';}
-function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset tweak/i.test(c));commands=commands.map(c=>{for(const [name]of SLIDERS){if(new RegExp('^!(?:bset\\s+)?'+name+'\\s','i').test(c))return c.replace(/\S+$/,String(config.values[name]));}return c;});
+function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset tweak/i.test(c));commands=commands.map(c=>{for(const [name]of SLIDERS){if(new RegExp('^!(?:bset\\s+)?'+name+'\\s','i').test(c))return '!bset '+name+' '+config.values[name];}return c;});
  const map=REFERENCE_OPTIONS.presets.maps.find(x=>x.name===config.map);const start=REFERENCE_OPTIONS.presets.modes.find(x=>x.name===config.start);
  commands=commands.filter(c=>!/^!(map|addbox|clearbox|raptor_queentimemult|raptor_raptorstart|debugcommands|map_lavatiderhythm)\b/i.test(c));
  const mapCommands=map?.commands||[];if(mapCommands.some(c=>/^!teamsize /.test(c)))commands=commands.filter(c=>!/^!teamsize /.test(c));
  const at=commands.findIndex(c=>c.startsWith('$rename '));commands.splice(at<0?commands.length:at,0,...mapCommands,...(start?.commands||[]));
  if(config.mode==='Raptors'){commands=commands.filter(c=>!/^!(addbox|clearbox)\b/i.test(c));commands.push('!clearbox 1','!clearbox 2','!addbox 0 0 200 200 1','!addbox 99 99 101 101 2');}
  if(config.mode==='Scavengers'){const at=commands.findIndex(c=>c.startsWith('!map '));commands.splice(at<0?0:at,0,...REFERENCE_OPTIONS.presets.scavengers);}
- if(config.start==='Zero Grace')commands.push('!raptor_graceperiodmult 0');
+ if(config.start==='Zero Grace')commands=commands.map(c=>c.startsWith('!bset raptor_graceperiodmult ')?'!bset raptor_graceperiodmult 0':c);
  if(config.start==='No Rush Solo')commands.push('!teamsize 1');
  commands=commands.map(c=>{if(c.startsWith('$rename '))return '$rename PvE NuttyB '+config.mode+(config.mode==='Raptors'?' [Qx'+config.values.raptor_queen_count+']['+(config.queenHP||1)+'xQHP]['+(config.raptorHP||1)+'xRHP]':' ['+(config.scavHP||1)+'xHP]['+(config.bossHP||1)+'xBHP]');return c;});return commands;
 }
@@ -71,7 +71,11 @@ function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():
  // Register Starfall last, after every other tweak has created or edited builders.
  const starfall=markerBlocks(LUA_SOURCES['3/1'].source).find(b=>b.id==='STARFALL');
  parts[4].push('!bset tweakdefs9 0',slotCommand('tweakdefs9',selected('STARFALL')?starfall.code+limitCode('STARFALL'):''));
- return sixCopyParts(parts.flat());
+ const sliderCommands=gameCommands().filter(c=>SLIDERS.some(([name])=>c.startsWith('!bset '+name+' ')));
+ const roomName=gameCommands().find(c=>c.startsWith('$rename '));
+ // Reapply the selected settings after the entire tweak set; never restore the
+ // baseline queen count in the final room name.
+ return sixCopyParts([...parts.flat().filter(c=>!c.startsWith('$rename ')),...sliderCommands,roomName]);
 }
 function sixCopyParts(commands){
  // Keep reset/payload pairs together; minimize the largest of six ordered pastes.
