@@ -14,7 +14,7 @@ function parseCustomCode(format,target,text){
  for(const line of text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean)){
   const match=line.match(/^!?bset\s+(tweak(?:defs|units)(?:[0-9])?)\s+([A-Za-z0-9+/_=-]+)$/i);
   if(!match)throw Error('Use complete !bset tweakdefs or !bset tweakunits commands, with slots 0–9.');
-  const slot=match[1].toLowerCase(),payload=match[2];
+  const slot=match[1].toLowerCase().replace(/0$/,''),payload=match[2];
   if(payload==='0')continue;
   let source;try{source=decodeLua(payload);}catch{throw Error('A tweak code could not be decoded. Paste the complete command.');}
   if(!source.trim()||source.includes('\uFFFD'))throw Error('A tweak code contains invalid text. Paste the complete command.');

@@ -67,7 +67,7 @@ function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset t
 }
 function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():part.commands.map((c,ci)=>{const key=pi+'/'+ci;return LUA_SOURCES[key]?slotCommand(LUA_SOURCES[key].slot,sourceFor(key)):c;}));
  // Slot zero reset belongs with its main payload. Every disabled slot gets an explicit reset.
- parts[1].unshift('!bset tweakunits 0');parts[4].push('!bset tweakdefs8 0');if(config.enabled.MEGA_NUKE)parts[4].push(slotCommand('tweakdefs8',REFERENCE_OPTIONS.mega));
+ parts[1].unshift('!bset tweakunits 0');for(let i=4;i<=9;i++)parts[4].push('!bset tweakunits'+i+' 0');parts[4].push('!bset tweakdefs8 0');if(config.enabled.MEGA_NUKE)parts[4].push(slotCommand('tweakdefs8',REFERENCE_OPTIONS.mega));
  // Register Starfall last, after every other tweak has created or edited builders.
  const starfall=markerBlocks(LUA_SOURCES['3/1'].source).find(b=>b.id==='STARFALL');
  parts[4].push('!bset tweakdefs9 0',slotCommand('tweakdefs9',selected('STARFALL')?starfall.code+limitCode('STARFALL'):''));
