@@ -75,7 +75,19 @@ function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():
  const roomName=gameCommands().find(c=>c.startsWith('$rename '));
  // Reapply the selected settings after the entire tweak set; never restore the
  // baseline queen count in the final room name.
- return sixCopyParts([...parts.flat().filter(c=>!c.startsWith('$rename ')),...sliderCommands,roomName]);
+ return sixCopyParts([...withCustomTweaks(parts.flat().filter(c=>!c.startsWith('$rename '))),...sliderCommands,roomName]);
+}
+function withCustomTweaks(commands){
+ const result=commands.slice();
+ for(const {slot,source} of config.customTweaks||[]){
+  const pattern=new RegExp('^!bset '+slot+' (\\S+)$','i');
+  let original='';
+  for(const command of result){const match=command.match(pattern);if(match&&match[1]!=='0')original=decodeLua(match[1]);}
+  const combined=original?(slot.startsWith('tweakunits')?'table.merge((\n'+original+'\n),(\n'+source+'\n))':'do\n'+original+'\nend\ndo\n'+source+'\nend'):source;
+  for(let i=result.length-1;i>=0;i--)if(pattern.test(result[i]))result.splice(i,1);
+  result.push('!bset '+slot+' 0',slotCommand(slot,combined));
+ }
+ return result;
 }
 function sixCopyParts(commands){
  // Keep reset/payload pairs together; minimize the largest of six ordered pastes.
