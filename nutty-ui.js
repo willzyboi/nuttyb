@@ -95,6 +95,10 @@ function withCustomTweaks(commands){
  return result;
 }
 function sixCopyParts(commands){
+ // Apply active slots directly. Clearing them first can leave them empty when
+ // the lobby drops the following long payload. Only clear genuinely unused slots.
+ const activeSlots=new Set(commands.map(c=>c.match(/^!bset (tweak(?:defs|units)\d*) (?!0$)\S+$/i)).filter(Boolean).map(m=>m[1].toLowerCase()));
+ commands=commands.filter(c=>{const reset=c.match(/^!bset (tweak(?:defs|units)\d*) 0$/i);return !reset||!activeSlots.has(reset[1].toLowerCase());});
  // Keep reset/payload pairs together; minimize the largest of six ordered pastes.
  const groups=[];
  for(let i=0;i<commands.length;i++){
@@ -134,7 +138,7 @@ document.getElementById('none-hp').addEventListener('click',()=>{config.raptorHP
 document.getElementById('reset-tweaks').addEventListener('click',()=>{config.enabled=defaults().enabled;config.limits={};config.wave='mini';renderTweaks();renderLimits();save();});
 document.getElementById('none-tweaks').addEventListener('click',()=>{for(const id of Object.keys(config.enabled))config.enabled[id]=id.startsWith('MAIN_');config.wave='none';renderTweaks();save();});
 document.getElementById('reset-multipliers').addEventListener('click',()=>{config.values=defaults().values;renderSliders();save();});
-document.getElementById('copy-hp').addEventListener('click',e=>{const slot=Object.entries(LUA_SOURCES).find(([,s])=>s.slot==='tweakdefs1');copy('!bset tweakdefs1 0\n'+slotCommand('tweakdefs1',sourceFor(slot[0])),e.currentTarget);});
+document.getElementById('copy-hp').addEventListener('click',e=>{const slot=Object.entries(LUA_SOURCES).find(([,s])=>s.slot==='tweakdefs1');copy(slotCommand('tweakdefs1',sourceFor(slot[0])),e.currentTarget);});
 document.getElementById('copy-multipliers').addEventListener('click',e=>copy(gameCommands().filter(c=>SLIDERS.some(([name])=>new RegExp('^!(?:bset\\s+)?'+name+'\\s','i').test(c))).join('\n'),e.currentTarget));
 function downloadPartsArchive(parts){
  const encoder=new TextEncoder(),chunks=[],directory=[];let offset=0;
