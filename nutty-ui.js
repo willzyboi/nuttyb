@@ -55,7 +55,7 @@ function sourceFor(key){const {slot,source}=LUA_SOURCES[key];if(slot==='tweakdef
 }
 function scavHealthSource(){if(!config.scavHP&&!config.bossHP)return '';return 'do local previous=UnitDef_Post function UnitDef_Post(name,u) if previous then previous(name,u) end if u.health then if name:match("^scavengerbossv4") then u.health=u.health*'+(config.bossHP||1)+' elseif name:match("_scav$") then u.health=u.health*'+(config.scavHP||1)+' end end end end\n';}
 // BAR's current lobby/game use base64url(zlib(JSON)), not legacy addbox commands.
-const CENTER_STARTBOX_OVERRIDE='eJyrViouSSwqScqvSC1WsoquVirIz6kEMyqUrAx0lCqVrAxqdcA8IwMI38jAoDYWJIas1NICLGdpAVVsaGAEFjA0MKqNrY2tBQCWDh62';
+const CENTER_STARTBOX_OVERRIDE='eJyrViouSSwqScqvSC1WsoquVirIz6kEMyqUrAx0lCqVrAxqdcA8IwMI38jAoDYWJIas1MIULGdhClVsaAgRMDQ0rY2tja0FAJWCHrY';
 function startboxCommands(){return config.mode==='Raptors'?['!bset startpostype 2','!bset mapmetadata_startbox_override '+CENTER_STARTBOX_OVERRIDE,'!bset raptor_raptorstart alwaysbox']:[];}
 function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset tweak/i.test(c));commands=commands.map(c=>{for(const [name]of SLIDERS){if(new RegExp('^!(?:bset\\s+)?'+name+'\\s','i').test(c))return '!bset '+name+' '+config.values[name];}return c;});
  const map=REFERENCE_OPTIONS.presets.maps.find(x=>x.name===config.map);const start=REFERENCE_OPTIONS.presets.modes.find(x=>x.name===config.start);
