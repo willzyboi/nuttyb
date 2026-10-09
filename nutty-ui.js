@@ -70,7 +70,7 @@ function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset t
 }
 function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():part.commands.map((c,ci)=>{const key=pi+'/'+ci;return LUA_SOURCES[key]?slotCommand(LUA_SOURCES[key].slot,sourceFor(key)):c;}));
  // Slot zero reset belongs with its main payload. Every disabled slot gets an explicit reset.
- parts[1].unshift('!bset tweakunits 0');for(let i=4;i<=9;i++)parts[4].push('!bset tweakunits'+i+' 0');parts[4].push('!bset tweakdefs8 0');if(config.enabled.MEGA_NUKE)parts[4].push(slotCommand('tweakdefs8',REFERENCE_OPTIONS.mega));
+ parts[1].unshift('!bset tweakunits 0');for(let i=5;i<=9;i++)parts[4].push('!bset tweakunits'+i+' 0');parts[4].push('!bset tweakdefs8 0');if(config.enabled.MEGA_NUKE)parts[4].push(slotCommand('tweakdefs8',REFERENCE_OPTIONS.mega));
  // Register Starfall last, after every other tweak has created or edited builders.
  const starfall=markerBlocks(LUA_SOURCES['3/1'].source).find(b=>b.id==='STARFALL');
  parts[4].push('!bset tweakdefs9 0',slotCommand('tweakdefs9',selected('STARFALL')?starfall.code+limitCode('STARFALL'):''));
@@ -134,7 +134,22 @@ document.getElementById('none-tweaks').addEventListener('click',()=>{for(const i
 document.getElementById('reset-multipliers').addEventListener('click',()=>{config.values=defaults().values;renderSliders();save();});
 document.getElementById('copy-hp').addEventListener('click',e=>{const slot=Object.entries(LUA_SOURCES).find(([,s])=>s.slot==='tweakdefs1');copy('!bset tweakdefs1 0\n'+slotCommand('tweakdefs1',sourceFor(slot[0])),e.currentTarget);});
 document.getElementById('copy-multipliers').addEventListener('click',e=>copy(gameCommands().filter(c=>SLIDERS.some(([name])=>new RegExp('^!(?:bset\\s+)?'+name+'\\s','i').test(c))).join('\n'),e.currentTarget));
-document.getElementById('download').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([outputs.join('\n')],{type:'text/plain;charset=utf-8'})),a=el('a');a.href=url;a.download='nuttyb-custom.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+function downloadPartsArchive(parts){
+ const encoder=new TextEncoder(),chunks=[],directory=[];let offset=0;
+ function crc(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);}return (c^0xffffffff)>>>0;}
+ function header(size){const bytes=new Uint8Array(size);return {bytes,view:new DataView(bytes.buffer)};}
+ const files=parts.map((text,i)=>['part-'+(i+1)+'.txt',text]);
+ files.push(['READ-ME.txt','Paste part-1.txt through part-6.txt into BAR lobby chat in order. Wait for each part to finish before pasting the next. Do not paste all files at once.\nZero reset commands clear old tweaks; the following encoded commands apply your selected mods.']);
+ for(const [name,text]of files){const filename=encoder.encode(name),data=encoder.encode(text),checksum=crc(data),local=header(30),central=header(46);const l=local.view,d=central.view;
+  l.setUint32(0,0x04034b50,true);l.setUint16(4,20,true);l.setUint32(14,checksum,true);l.setUint32(18,data.length,true);l.setUint32(22,data.length,true);l.setUint16(26,filename.length,true);
+  d.setUint32(0,0x02014b50,true);d.setUint16(4,20,true);d.setUint16(6,20,true);d.setUint32(16,checksum,true);d.setUint32(20,data.length,true);d.setUint32(24,data.length,true);d.setUint16(28,filename.length,true);d.setUint32(42,offset,true);
+  chunks.push(local.bytes,filename,data);directory.push(central.bytes,filename);offset+=30+filename.length+data.length;
+ }
+ const directorySize=directory.reduce((n,b)=>n+b.length,0),end=header(22);end.view.setUint32(0,0x06054b50,true);end.view.setUint16(8,files.length,true);end.view.setUint16(10,files.length,true);end.view.setUint32(12,directorySize,true);end.view.setUint32(16,offset,true);
+ return new Blob([...chunks,...directory,end.bytes],{type:'application/zip'});
+}
+document.getElementById('download').addEventListener('click',()=>{const parts=generate(),url=URL.createObjectURL(downloadPartsArchive(parts)),a=el('a');a.href=url;a.download='wills-config-six-parts.zip';a.click();document.getElementById('status').textContent='Saved six parts. Extract the ZIP and paste parts 1–6 in order.';setTimeout(()=>URL.revokeObjectURL(url),1000);});
+document.getElementById('copy-all')?.addEventListener('click',e=>copy(generate().join('\n'),e.currentTarget));
 document.getElementById('commands-tab').addEventListener('click',()=>{document.getElementById('configuration').hidden=true;document.getElementById('configuration-tab').classList.remove('active');document.getElementById('commands-tab').classList.add('active');document.getElementById('configuration-tab').setAttribute('aria-pressed','false');document.getElementById('commands-tab').setAttribute('aria-pressed','true');});
 document.getElementById('configuration-tab').addEventListener('click',()=>{document.getElementById('configuration').hidden=false;document.getElementById('commands-tab').classList.remove('active');document.getElementById('configuration-tab').classList.add('active');document.getElementById('configuration-tab').setAttribute('aria-pressed','true');document.getElementById('commands-tab').setAttribute('aria-pressed','false');});
 renderOutputs();renderAll();
