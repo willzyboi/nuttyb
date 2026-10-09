@@ -66,7 +66,7 @@ function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset t
  if(config.mode==='Scavengers'){const at=commands.findIndex(c=>c.startsWith('!map '));commands.splice(at<0?0:at,0,...REFERENCE_OPTIONS.presets.scavengers);}
  if(config.start==='Zero Grace')commands=commands.map(c=>c.startsWith('!bset raptor_graceperiodmult ')?'!bset raptor_graceperiodmult 0':c);
  if(config.start==='No Rush Solo')commands.push('!teamsize 1');
- commands=commands.map(c=>{if(c.startsWith('$rename '))return '$rename PvE NuttyB '+config.mode+(config.mode==='Raptors'?' [Qx'+config.values.raptor_queen_count+']['+(config.queenHP||1)+'xQHP]['+(config.raptorHP||1)+'xRHP]':' ['+(config.scavHP||1)+'xHP]['+(config.bossHP||1)+'xBHP]');return c;});return commands;
+ commands=commands.map(c=>{if(c.startsWith('$rename '))return '$rename W/B Mod PVE NuttyB '+config.mode+(config.mode==='Raptors'?' [Qx'+config.values.raptor_queen_count+']['+(config.queenHP||1)+'xQHP]['+(config.raptorHP||1)+'xRHP]':' ['+(config.scavHP||1)+'xHP]['+(config.bossHP||1)+'xBHP]');return c;});return commands;
 }
 function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():part.commands.map((c,ci)=>{const key=pi+'/'+ci;return LUA_SOURCES[key]?slotCommand(LUA_SOURCES[key].slot,sourceFor(key)):c;}));
  // Slot zero reset belongs with its main payload. Every disabled slot gets an explicit reset.
