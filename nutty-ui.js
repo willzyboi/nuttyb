@@ -21,7 +21,8 @@ const GROUPS=[
  ['T2 LRPC v2',['LRPC']],
  ['T4 Epics',['BASTION','CALAMITY','EPIC_ELYSIUM','FORTRESS','RAGNAROK','STARFALL']],
  ['T3 Builders',['T3_BUILDERS']],
- ['Unit Launchers',['UNIT_LAUNCHERS']]
+ ['Unit Launchers',['UNIT_LAUNCHERS']],
+ ['Steel Dome',['STEEL_DOME']]
 ];
 const UNIT_LABELS={MAIN_DEFS:'Main Defs',MAIN_UNITS:'Main Units',ARMADA_COMMANDER:'Armada Commander',CORTEX_COMMANDER:'Cortex Commander',LEGION_COMMANDER:'Legion Commander',LEGENDARY_BASTION:'Legendary Bastion',LEGENDARY_BULWARK:'Legendary Bulwark',LEGENDARY_PULSAR:'Legendary Pulsar',BASTION:'Epic Bastion',CALAMITY:'Epic Calamity',EPIC_ELYSIUM:'Epic Elysium',FORTRESS:'Epic Fortress',RAGNAROK:'Epic Ragnarok',STARFALL:'Epic Starfall'};
 const LIMITS=[['T3_BUILDERS','T3 Builders',40],['UNIT_LAUNCHERS','Unit Launchers',9999],['RAGNAROK','Epic Ragnarok',9999],['CALAMITY','Epic Calamity',9999],['T4_AIR','Epic Tyrannus',9999],['STARFALL','Epic Starfall',9999]];
@@ -73,7 +74,8 @@ function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():
  parts[1].unshift('!bset tweakunits 0');for(let i=5;i<=9;i++)parts[4].push('!bset tweakunits'+i+' 0');parts[4].push('!bset tweakdefs8 0');if(config.enabled.MEGA_NUKE)parts[4].push(slotCommand('tweakdefs8',REFERENCE_OPTIONS.mega));
  // Register Starfall last, after every other tweak has created or edited builders.
  const starfall=markerBlocks(LUA_SOURCES['3/1'].source).find(b=>b.id==='STARFALL');
- parts[4].push('!bset tweakdefs9 0',slotCommand('tweakdefs9',selected('STARFALL')?starfall.code+limitCode('STARFALL'):''));
+ const lateDefs=[selected('STARFALL')?starfall.code+limitCode('STARFALL'):'',selected('STEEL_DOME')&&typeof STEEL_DOME_LUA!=='undefined'?STEEL_DOME_LUA:''].filter(Boolean).join('\n');
+ parts[4].push('!bset tweakdefs9 0',slotCommand('tweakdefs9',lateDefs));
  const sliderCommands=gameCommands().filter(c=>SLIDERS.some(([name])=>c.startsWith('!bset '+name+' ')));
  const roomName=gameCommands().find(c=>c.startsWith('$rename '));
  // Reapply the selected settings after the entire tweak set; never restore the
