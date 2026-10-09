@@ -54,12 +54,15 @@ function sourceFor(key){const {slot,source}=LUA_SOURCES[key];if(slot==='tweakdef
  return hasCode(result)?result:'';
 }
 function scavHealthSource(){if(!config.scavHP&&!config.bossHP)return '';return 'do local previous=UnitDef_Post function UnitDef_Post(name,u) if previous then previous(name,u) end if u.health then if name:match("^scavengerbossv4") then u.health=u.health*'+(config.bossHP||1)+' elseif name:match("_scav$") then u.health=u.health*'+(config.scavHP||1)+' end end end end\n';}
+// BAR's current lobby/game use base64url(zlib(JSON)), not legacy addbox commands.
+const CENTER_STARTBOX_OVERRIDE='eJyrViouSSwqScqvSC1WsoquVirIz6kEMyqUrAx0lCqVrAxqdcA8IwMI38jAoDYWJIas1NISLGdpCVVsaGAIFjA0MKyNrY2tBQCWMR62';
+function startboxCommands(){return config.mode==='Raptors'?['!bset startpostype 2','!bset mapmetadata_startbox_override '+CENTER_STARTBOX_OVERRIDE,'!bset raptor_raptorstart alwaysbox']:[];}
 function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset tweak/i.test(c));commands=commands.map(c=>{for(const [name]of SLIDERS){if(new RegExp('^!(?:bset\\s+)?'+name+'\\s','i').test(c))return '!bset '+name+' '+config.values[name];}return c;});
  const map=REFERENCE_OPTIONS.presets.maps.find(x=>x.name===config.map);const start=REFERENCE_OPTIONS.presets.modes.find(x=>x.name===config.start);
  commands=commands.filter(c=>!/^!(map|addbox|clearbox|raptor_queentimemult|raptor_raptorstart|debugcommands|map_lavatiderhythm)\b/i.test(c));
  const mapCommands=map?.commands||[];if(mapCommands.some(c=>/^!teamsize /.test(c)))commands=commands.filter(c=>!/^!teamsize /.test(c));
  const at=commands.findIndex(c=>c.startsWith('$rename '));commands.splice(at<0?commands.length:at,0,...mapCommands,...(start?.commands||[]));
- if(config.mode==='Raptors'){commands=commands.filter(c=>!/^!(addbox|clearbox)\b/i.test(c));commands.push('!clearbox 1','!clearbox 2','!addbox 0 0 200 200 1','!addbox 99 99 101 101 2');}
+ if(config.mode==='Raptors'){commands=commands.filter(c=>!/^!(?:addbox|clearbox|raptor_raptorstart)\b/i.test(c));commands.push(...startboxCommands());}
  if(config.mode==='Scavengers'){const at=commands.findIndex(c=>c.startsWith('!map '));commands.splice(at<0?0:at,0,...REFERENCE_OPTIONS.presets.scavengers);}
  if(config.start==='Zero Grace')commands=commands.map(c=>c.startsWith('!bset raptor_graceperiodmult ')?'!bset raptor_graceperiodmult 0':c);
  if(config.start==='No Rush Solo')commands.push('!teamsize 1');
@@ -75,7 +78,7 @@ function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():
  const roomName=gameCommands().find(c=>c.startsWith('$rename '));
  // Reapply the selected settings after the entire tweak set; never restore the
  // baseline queen count in the final room name.
- return sixCopyParts([...withCustomTweaks(parts.flat().filter(c=>!c.startsWith('$rename '))),...sliderCommands,roomName]);
+ return sixCopyParts([...withCustomTweaks(parts.flat().filter(c=>!c.startsWith('$rename '))),...sliderCommands,...startboxCommands(),roomName]);
 }
 function withCustomTweaks(commands){
  const result=commands.slice();
