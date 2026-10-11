@@ -66,7 +66,7 @@
   gameCommands = function() {
     let lines = originalGame();
     const tag = state().lobbyTag.trim().replace(/[\r\n]/g,' ');
-    lines = lines.map(c => c.startsWith('$rename ') ? '$rename W/B Mod PVE NuttyB '+config.mode+(tag?' ['+tag+']':'')+(config.mode==='Raptors'?' [Qx'+config.values.raptor_queen_count+']['+(config.queenHP||1)+'xQHP]['+(config.raptorHP||1)+'xRHP]':' ['+(config.scavHP||1)+'xHP]['+(config.bossHP||1)+'xBHP]') : c);
+    lines = lines.map(c => c.startsWith('$rename ') ? '$rename WMod PVE NuttyB '+config.mode+(tag?' ['+tag+']':'')+(config.mode==='Raptors'?' [Qx'+config.values.raptor_queen_count+']['+(config.queenHP||1)+'xQHP]['+(config.raptorHP||1)+'xRHP]':' ['+(config.scavHP||1)+'xHP]['+(config.bossHP||1)+'xBHP]') : c);
     return lines;
   };
   function communityCommands() {
