@@ -176,9 +176,10 @@
   tools.innerHTML='<h2>Tweak workshop</h2><p class="hint">Explore community Lua, convert code, save reusable tweaks, or edit generated slots.</p><div class="workshop-tabs"><button data-workshop="browse" class="primary">Tweak browser</button><button data-workshop="convert">Lua / Base64</button><button data-workshop="editor">Slot editor</button><button data-workshop="saved">Saved tweaks</button></div><div id="workshop-content"></div><p class="status" id="tools-status" role="status" aria-live="polite"></p>';
   document.getElementById('outputs').before(tools);
   const tab=el('button','','Workshop');tab.id='tools-tab';tab.setAttribute('aria-pressed','false');document.querySelector('.topnav').append(tab);
-  const allTabs=['configuration','commands','custom','widgets','library','tools'];
+  const allTabs=['configuration','custom','widgets','library','tools'];
   for(const name of allTabs)document.getElementById(name+'-tab').addEventListener('click',()=>{
-    for(const id of allTabs){const on=id===name;const button=document.getElementById(id+'-tab');button.classList.toggle('active',on);button.setAttribute('aria-pressed',String(on));document.getElementById(id==='commands'?'outputs':id).hidden=!on;}
+    for(const id of allTabs){const on=id===name;const button=document.getElementById(id+'-tab');button.classList.toggle('active',on);button.setAttribute('aria-pressed',String(on));document.getElementById(id).hidden=!on;}
+    document.getElementById('outputs').hidden=name!=='configuration';
     saved.hidden=name==='tools'||name==='widgets'||name==='library';
   });
   const area=document.getElementById('workshop-content'),message=document.getElementById('tools-status');

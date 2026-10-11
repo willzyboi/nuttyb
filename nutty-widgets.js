@@ -31,7 +31,7 @@ const links=[
  ['widget-extra','Track Sabotage','manshanko','Local notifications when friendly fire destroys economy units.','https://github.com/manshanko/bar-widgets#track-sabotage']
 ];
 for(const [target,title,author,desc,url]of links){const box=card(target,title,author,desc);const a=document.createElement('a');a.className='widget-link';a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Get from author ↗';box.appendChild(a);if(['Reclaim Selected','Holo Place / No hijack','Metal Tracker'].includes(title))addUpdater(box);}
-const ids=['configuration','commands','custom','widgets'];
+const ids=['configuration','custom','widgets'];
 for(const id of ids)document.getElementById(id+'-tab').addEventListener('click',()=>{root.hidden=id!=='widgets';if(id==='widgets'){document.getElementById('configuration').hidden=true;document.getElementById('outputs').hidden=true;document.getElementById('custom').hidden=true;}for(const tab of ids){const button=document.getElementById(tab+'-tab');button.classList.toggle('active',tab===id);button.setAttribute('aria-pressed',String(tab===id));}});
 
 })();

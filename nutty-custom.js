@@ -29,8 +29,8 @@ document.getElementById('apply-custom').addEventListener('click',()=>{
  catch(error){customMessage.textContent=error.message;}
 });
 document.getElementById('clear-custom').addEventListener('click',()=>{delete config.customTweaks;delete config.customDraft;showCustomDraft();save();customMessage.textContent='Custom code removed from your generated code.';});
-function customTabState(active){customRoot.hidden=active!=='custom';for(const id of ['configuration-tab','commands-tab','custom-tab']){const on=id===active+'-tab';document.getElementById(id).classList[on?'add':'remove']('active');document.getElementById(id).setAttribute('aria-pressed',String(on));}}
+function customTabState(active){customRoot.hidden=active!=='custom';for(const id of ['configuration-tab','custom-tab']){const on=id===active+'-tab';document.getElementById(id).classList[on?'add':'remove']('active');document.getElementById(id).setAttribute('aria-pressed',String(on));}}
 document.getElementById('custom-tab').addEventListener('click',()=>{document.getElementById('configuration').hidden=true;document.getElementById('outputs').hidden=true;customTabState('custom');});
-for(const tab of ['configuration','commands'])document.getElementById(tab+'-tab').addEventListener('click',()=>{document.getElementById('outputs').hidden=false;customTabState(tab);});
+for(const tab of ['configuration'])document.getElementById(tab+'-tab').addEventListener('click',()=>{document.getElementById('outputs').hidden=false;customTabState(tab);});
 document.getElementById('reset').addEventListener('click',showCustomDraft);
 showCustomDraft();
