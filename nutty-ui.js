@@ -57,7 +57,7 @@ function sourceFor(key){const {slot,source}=LUA_SOURCES[key];if(slot==='tweakdef
 function scavHealthSource(){if(!config.scavHP&&!config.bossHP)return '';return 'do local previous=UnitDef_Post function UnitDef_Post(name,u) if previous then previous(name,u) end if u.health then if name:match("^scavengerbossv4") then u.health=u.health*'+(config.bossHP||1)+' elseif name:match("_scav$") then u.health=u.health*'+(config.scavHP||1)+' end end end end\n';}
 // BAR's current lobby/game use base64url(zlib(JSON)), not legacy addbox commands.
 const CENTER_STARTBOX_OVERRIDE='eJyrViouSSwqScqvSC1WsoquVirIz6kEMyqUrAx0lCqVrAxqdcA8IwMI38jAoDYWJIas1MIULGdhClVsaAgRMDQ0rY2tja0FAJWCHrY';
-function startboxCommands(){return config.mode==='Raptors'?['!bset startpostype 2','!bset mapmetadata_startbox_override '+CENTER_STARTBOX_OVERRIDE,'!bset raptor_raptorstart alwaysbox']:[];}
+function startboxCommands(){return config.mode==='Raptors'?['!bset startpostype 2','!bset mapmetadata_startbox_override '+(config.start==='Surrounded'?'eJyrViouSSwqScqvSC1WsoquVirIz6kEMyqUrMwMdJQqQVStDphvaAIRMDQxqI0FiSErhkjBlBoZQPhGBiClsbUAjyEepA':CENTER_STARTBOX_OVERRIDE),'!bset raptor_raptorstart '+(config.start==='Surrounded'?'avoid':'alwaysbox')]:[];}
 function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset tweak/i.test(c));commands=commands.map(c=>{for(const [name]of SLIDERS){if(new RegExp('^!(?:bset\\s+)?'+name+'\\s','i').test(c))return '!bset '+name+' '+config.values[name];}return c;});
  const map=REFERENCE_OPTIONS.presets.maps.find(x=>x.name===config.map);const start=REFERENCE_OPTIONS.presets.modes.find(x=>x.name===config.start);
  commands=commands.filter(c=>!/^!(map|addbox|clearbox|raptor_queentimemult|raptor_raptorstart|debugcommands|map_lavatiderhythm)\b/i.test(c));
@@ -65,7 +65,7 @@ function gameCommands(){let commands=BASE_PARTS[0].commands.filter(c=>!/^!bset t
  const at=commands.findIndex(c=>c.startsWith('$rename '));commands.splice(at<0?commands.length:at,0,...mapCommands,...(start?.commands||[]));
  if(config.mode==='Raptors'){commands=commands.filter(c=>!/^!(?:addbox|clearbox|raptor_raptorstart)\b/i.test(c));commands.push(...startboxCommands());}
  if(config.mode==='Scavengers'){const at=commands.findIndex(c=>c.startsWith('!map '));commands.splice(at<0?0:at,0,...REFERENCE_OPTIONS.presets.scavengers);}
- if(config.start==='Zero Grace')commands=commands.map(c=>c.startsWith('!bset raptor_graceperiodmult ')?'!bset raptor_graceperiodmult 0':c);
+ if(config.start==='Zero Grace')commands=commands.map(c=>c.startsWith('!bset raptor_graceperiodmult ')?'!bset raptor_graceperiodmult '+config.values.raptor_graceperiodmult:c);
  if(config.start==='No Rush Solo')commands.push('!teamsize 1');
  commands=commands.map(c=>{if(c.startsWith('$rename '))return '$rename WB Mod PVE NuttyB '+config.mode+(config.mode==='Raptors'?' [Qx'+config.values.raptor_queen_count+']['+(config.queenHP||1)+'xQHP]['+(config.raptorHP||1)+'xRHP]':' ['+(config.scavHP||1)+'xHP]['+(config.bossHP||1)+'xBHP]');return c;});return commands.map(c=>c.startsWith("$rename ")?"$rename "+c.slice(8).replace(/[^A-Za-z0-9 \[\]<>+|:-]/g," ").replace(/ +/g," ").trim():c);
 }
@@ -80,7 +80,7 @@ function generate(){const parts=BASE_PARTS.map((part,pi)=>pi===0?gameCommands():
  const roomName=gameCommands().find(c=>c.startsWith('$rename '));
  // Reapply the selected settings after the entire tweak set; never restore the
  // baseline queen count in the final room name.
- return sixCopyParts([...withCustomTweaks(parts.flat().filter(c=>!c.startsWith('$rename '))),...sliderCommands,...startboxCommands(),roomName]);
+ return [cleanCommands([...withCustomTweaks(parts.flat().filter(c=>!c.startsWith('$rename '))),...sliderCommands,...startboxCommands(),roomName]).join('\n')];
 }
 function withCustomTweaks(commands){
  const result=commands.slice();
@@ -94,27 +94,14 @@ function withCustomTweaks(commands){
  }
  return result;
 }
-function sixCopyParts(commands){
+function cleanCommands(commands){
  // Apply active slots directly. Clearing them first can leave them empty when
  // the lobby drops the following long payload. Only clear genuinely unused slots.
  const activeSlots=new Set(commands.map(c=>c.match(/^!bset (tweak(?:defs|units)\d*) (?!0$)\S+$/i)).filter(Boolean).map(m=>m[1].toLowerCase()));
  commands=commands.filter(c=>{const reset=c.match(/^!bset (tweak(?:defs|units)\d*) 0$/i);return !reset||!activeSlots.has(reset[1].toLowerCase());});
- // Keep reset/payload pairs together; minimize the largest of six ordered pastes.
- const groups=[];
- for(let i=0;i<commands.length;i++){
-  let group=commands[i];const reset=group.match(/^!bset (tweak\w+) 0$/i);
-  if(reset&&commands[i+1]?.toLowerCase().startsWith('!bset '+reset[1].toLowerCase()+' '))group+='\n'+commands[++i];
-  groups.push(group);
- }
- const n=groups.length,prefix=[0];groups.forEach(g=>prefix.push(prefix.at(-1)+g.length+1));
- const dp=Array.from({length:7},()=>Array(n+1).fill(Infinity)),cut=Array.from({length:7},()=>Array(n+1));dp[0][0]=0;
- for(let k=1;k<=6;k++)for(let i=k;i<=n;i++)for(let j=k-1;j<i;j++){
-  const size=Math.max(dp[k-1][j],prefix[i]-prefix[j]);if(size<dp[k][i]){dp[k][i]=size;cut[k][i]=j;}
- }
- const result=[];let end=n;for(let k=6;k>0;k--){const begin=cut[k][end];result.unshift(groups.slice(begin,end).join('\n'));end=begin;}
- return result;
+ return commands;
 }
-function save(){try{localStorage.setItem('nutty-pink-v2',JSON.stringify(config));}catch{}outputs=generate();document.querySelectorAll('.part-preview[data-part]').forEach(e=>e.value=outputs[Number(e.dataset.part)]);copyButtons.forEach((b,i)=>b.textContent='Copy part '+(i+1));document.getElementById('status').textContent='Ready to copy.';}
+function save(){try{localStorage.setItem('nutty-pink-v2',JSON.stringify(config));}catch{}outputs=generate();document.querySelectorAll('.part-preview[data-part]').forEach(e=>e.value=outputs[Number(e.dataset.part)]);document.getElementById('status').textContent='Ready to copy.';}
 async function copy(text,button){let success=false;try{await navigator.clipboard.writeText(text);success=true;}catch{const manual=document.getElementById('manual');manual.hidden=false;manual.value=text;manual.focus();manual.select();try{success=document.execCommand('copy');}catch{}if(success)manual.hidden=true;}if(success){button.textContent='Copied ✓';document.getElementById('status').textContent='Copied. Paste into BAR lobby chat.';}else document.getElementById('status').textContent='Press Ctrl+C to copy the selected text.';}
 function selectControl(root,name,value,options,onChange){const row=el('div','setting'),label=el('label','',name+':'),input=el('select');input.id='setting-'+name.replaceAll(' ','-');label.htmlFor=input.id;for(const option of options){const item=el('option','',typeof option==='string'?option:option.label);item.value=typeof option==='string'?option:option.value;input.append(item);}input.value=String(value);input.addEventListener('change',()=>{onChange(input.value);save();});row.append(label,input);root.append(row);}
 function renderGame(){const root=document.getElementById('game-settings');root.replaceChildren();selectControl(root,'Mode',config.mode,['Raptors','Scavengers'],v=>{config.mode=v;renderGame();renderTweaks();});
@@ -126,11 +113,11 @@ function enable(id,on){config.enabled[id]=on;if(on)for(const dep of DEPENDENCIES
 const expanded=new Set();
 function renderTweaks(){const root=document.getElementById('tweak-options');root.replaceChildren();GROUPS.forEach(([name,ids],index)=>{const wrapper=el('div'),row=el('div','tweak-row'),label=el('label'),check=el('input');check.type='checkbox';check.id='group-'+index;check.checked=ids.every(id=>config.enabled[id]);check.indeterminate=!check.checked&&ids.some(id=>config.enabled[id]);check.disabled=index===0;label.append(check,el('span','',name));check.addEventListener('change',()=>{ids.forEach(id=>enable(id,check.checked));renderTweaks();save();document.getElementById('tweak-status').textContent='Selections updated. Required builders are included automatically.';});row.append(label);wrapper.append(row);
  if(ids.length>1){const toggle=el('button','',expanded.has(index)?'▾':'▸');toggle.setAttribute('aria-label','Expand '+name);toggle.setAttribute('aria-expanded',String(expanded.has(index)));toggle.addEventListener('click',()=>{if(expanded.has(index))expanded.delete(index);else expanded.add(index);renderTweaks();});row.append(toggle);const sub=el('div','suboptions');sub.hidden=!expanded.has(index);ids.forEach(id=>{const l=el('label'),c=el('input');c.type='checkbox';c.checked=config.enabled[id];c.disabled=index===0;c.addEventListener('change',()=>{enable(id,c.checked);renderTweaks();save();});l.append(c,el('span','',UNIT_LABELS[id]||id));sub.append(l);});wrapper.append(sub);}root.append(wrapper);});
- const waves=document.getElementById('wave-options');waves.replaceChildren();for(const [value,name]of [['none','None'],['mini','Mini Bosses']]){const label=el('label','pill'),radio=el('input');radio.type='radio';radio.name='waves';radio.value=value;radio.checked=config.wave===value;radio.disabled=config.mode!=='Raptors';radio.addEventListener('change',()=>{config.wave=value;save();});label.append(radio,el('span','',name));waves.append(label);}
+ const waves=document.getElementById('wave-options');waves.replaceChildren();for(const [value,name]of [['none','None'],['mini','Mini Bosses'],['extended','Extended Mini Bosses'],['experimental','Experimental Waves']]){const label=el('label','pill'),radio=el('input');radio.type='radio';radio.name='waves';radio.value=value;radio.checked=config.wave===value;radio.disabled=config.mode!=='Raptors';radio.addEventListener('change',()=>{config.wave=value;save();});label.append(radio,el('span','',name));waves.append(label);}
 }
 function renderLimits(){const root=document.getElementById('limits');root.replaceChildren();LIMITS.forEach(([id,name,defaultValue])=>{const label=el('label','limit'),text=el('span','',name);text.append(el('small','','Original: '+defaultValue+'/unit'));const input=el('input');input.type='number';input.min=0;input.step=1;input.placeholder='Default';input.value=config.limits[id]??'';input.setAttribute('aria-label',name+' maximum');input.addEventListener('input',()=>{if(input.value===''){delete config.limits[id];save();return;}const v=Number(input.value);if(Number.isInteger(v)&&v>=0){config.limits[id]=v;save();}});label.append(text,input);root.append(label);});}
 function renderSliders(){for(const id of ['resource-sliders','raptor-sliders'])document.getElementById(id).replaceChildren();SLIDERS.forEach(([name,label,min,max,step,parent])=>{const root=document.getElementById(parent),control=el('div','control'),title=el('label','',label),inputs=el('div','inputs'),slider=el('input'),number=el('input');slider.type='range';slider.min=min;slider.max=max;slider.step=step;slider.value=config.values[name];slider.setAttribute('aria-label',label+' slider');number.type='number';number.id=name+'-value';number.min=min;number.max=max;number.step=step;number.value=config.values[name];title.htmlFor=number.id;number.setAttribute('aria-label',label);function update(value){if(!Number.isFinite(value))return;config.values[name]=Number(Math.max(min,Math.min(max,value)).toFixed(2));slider.value=number.value=config.values[name];save();}slider.addEventListener('input',()=>update(Number(slider.value)));number.addEventListener('input',()=>{const value=Number(number.value);if(number.value!==''&&value>=min&&value<=max&&Number.isFinite(value)){config.values[name]=value;slider.value=value;save();}});number.addEventListener('change',()=>update(Number(number.value)));const plus=el('button','','+'),minus=el('button','','−');plus.setAttribute('aria-label','Increase '+label);minus.setAttribute('aria-label','Decrease '+label);plus.addEventListener('click',()=>update(config.values[name]+step));minus.addEventListener('click',()=>update(config.values[name]-step));inputs.append(slider,number,plus,minus);control.append(title,inputs);root.append(control);});}
-function renderOutputs(){const root=document.getElementById('generated');root.replaceChildren();Array.from({length:6}).forEach((_,i)=>{const row=el('div','copy-row'),side=el('div'),button=el('button','primary','Copy part '+(i+1));copyButtons[i]=button;button.addEventListener('click',()=>copy(outputs[i],button));side.append(button,el('p','hint','Settings & tweaks '+(i+1)+' of 6'));const preview=el('textarea','part-preview');preview.dataset.part=i;preview.readOnly=true;preview.setAttribute('aria-label','Part '+(i+1)+' generated commands');row.append(side,preview);root.append(row);});}
+function renderOutputs(){const root=document.getElementById('generated');root.replaceChildren();const preview=el('textarea','part-preview complete-code');preview.dataset.part=0;preview.readOnly=true;preview.setAttribute('aria-label','Complete generated BAR commands');root.append(preview);}
 function renderAll(){renderGame();renderTweaks();renderLimits();renderSliders();save();}
 document.getElementById('reset').addEventListener('click',()=>{config=defaults();renderAll();});
 document.getElementById('reset-game').addEventListener('click',()=>{const d=defaults();for(const name of ['mode','map','start','raptorHP','queenHP','scavHP','bossHP'])config[name]=d[name];renderGame();renderTweaks();save();});
@@ -140,21 +127,7 @@ document.getElementById('none-tweaks').addEventListener('click',()=>{for(const i
 document.getElementById('reset-multipliers').addEventListener('click',()=>{config.values=defaults().values;renderSliders();save();});
 document.getElementById('copy-hp').addEventListener('click',e=>{const slot=Object.entries(LUA_SOURCES).find(([,s])=>s.slot==='tweakdefs1');copy(slotCommand('tweakdefs1',sourceFor(slot[0])),e.currentTarget);});
 document.getElementById('copy-multipliers').addEventListener('click',e=>copy(gameCommands().filter(c=>SLIDERS.some(([name])=>new RegExp('^!(?:bset\\s+)?'+name+'\\s','i').test(c))).join('\n'),e.currentTarget));
-function downloadPartsArchive(parts){
- const encoder=new TextEncoder(),chunks=[],directory=[];let offset=0;
- function crc(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);}return (c^0xffffffff)>>>0;}
- function header(size){const bytes=new Uint8Array(size);return {bytes,view:new DataView(bytes.buffer)};}
- const files=parts.map((text,i)=>['part-'+(i+1)+'.txt',text]);
- files.push(['READ-ME.txt','Paste part-1.txt through part-6.txt into BAR lobby chat in order. Wait for each part to finish before pasting the next. Do not paste all files at once.\nZero reset commands clear old tweaks; the following encoded commands apply your selected mods.']);
- for(const [name,text]of files){const filename=encoder.encode(name),data=encoder.encode(text),checksum=crc(data),local=header(30),central=header(46);const l=local.view,d=central.view;
-  l.setUint32(0,0x04034b50,true);l.setUint16(4,20,true);l.setUint32(14,checksum,true);l.setUint32(18,data.length,true);l.setUint32(22,data.length,true);l.setUint16(26,filename.length,true);
-  d.setUint32(0,0x02014b50,true);d.setUint16(4,20,true);d.setUint16(6,20,true);d.setUint32(16,checksum,true);d.setUint32(20,data.length,true);d.setUint32(24,data.length,true);d.setUint16(28,filename.length,true);d.setUint32(42,offset,true);
-  chunks.push(local.bytes,filename,data);directory.push(central.bytes,filename);offset+=30+filename.length+data.length;
- }
- const directorySize=directory.reduce((n,b)=>n+b.length,0),end=header(22);end.view.setUint32(0,0x06054b50,true);end.view.setUint16(8,files.length,true);end.view.setUint16(10,files.length,true);end.view.setUint32(12,directorySize,true);end.view.setUint32(16,offset,true);
- return new Blob([...chunks,...directory,end.bytes],{type:'application/zip'});
-}
-document.getElementById('download').addEventListener('click',()=>{const parts=generate(),url=URL.createObjectURL(downloadPartsArchive(parts)),a=el('a');a.href=url;a.download='wills-config-six-parts.zip';a.click();document.getElementById('status').textContent='Saved six parts. Extract the ZIP and paste parts 1–6 in order.';setTimeout(()=>URL.revokeObjectURL(url),1000);});
+document.getElementById('download').addEventListener('click',()=>{const blob=new Blob([generate().join('\n')],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='nutty-b-config.txt';a.click();document.getElementById('status').textContent='Saved your complete generated code.';setTimeout(()=>URL.revokeObjectURL(url),1000);});
 document.getElementById('copy-all')?.addEventListener('click',e=>copy(generate().join('\n'),e.currentTarget));
 document.getElementById('commands-tab').addEventListener('click',()=>{document.getElementById('configuration').hidden=true;document.getElementById('configuration-tab').classList.remove('active');document.getElementById('commands-tab').classList.add('active');document.getElementById('configuration-tab').setAttribute('aria-pressed','false');document.getElementById('commands-tab').setAttribute('aria-pressed','true');});
 document.getElementById('configuration-tab').addEventListener('click',()=>{document.getElementById('configuration').hidden=false;document.getElementById('commands-tab').classList.remove('active');document.getElementById('configuration-tab').classList.add('active');document.getElementById('configuration-tab').setAttribute('aria-pressed','true');document.getElementById('commands-tab').setAttribute('aria-pressed','false');});

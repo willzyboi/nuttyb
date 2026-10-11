@@ -5,8 +5,8 @@ const customTarget=document.getElementById('custom-target');
 const customText=document.getElementById('custom-code');
 const customMessage=document.getElementById('custom-status');
 const customDraft=()=>{config.customDraft={format:customFormat.value,target:customTarget.value,text:customText.value};try{localStorage.setItem('nutty-pink-v2',JSON.stringify(config));}catch{}};
-function showCustomDraft(){const draft=config.customDraft||{};customFormat.value=draft.format||'lua';customTarget.value=draft.target||'tweakdefs8';customText.value=draft.text||'';customTarget.disabled=customFormat.value==='tweak';document.getElementById('custom-target-row').hidden=customFormat.value==='tweak';customMessage.textContent=(config.customTweaks||[]).length?'Custom code is included in your six copy parts.':'Paste your code, then select Apply code.';}
-for(const input of [customFormat,customTarget,customText])input.addEventListener('input',()=>{customDraft();document.getElementById('custom-target-row').hidden=customFormat.value==='tweak';customTarget.disabled=customFormat.value==='tweak';customMessage.textContent='Draft changed. Select Apply code to update your copy parts.';});
+function showCustomDraft(){const draft=config.customDraft||{};customFormat.value=draft.format||'lua';customTarget.value=draft.target||'tweakdefs8';customText.value=draft.text||'';customTarget.disabled=customFormat.value==='tweak';document.getElementById('custom-target-row').hidden=customFormat.value==='tweak';customMessage.textContent=(config.customTweaks||[]).length?'Custom code is included in your generated code.':'Paste your code, then select Apply code.';}
+for(const input of [customFormat,customTarget,customText])input.addEventListener('input',()=>{customDraft();document.getElementById('custom-target-row').hidden=customFormat.value==='tweak';customTarget.disabled=customFormat.value==='tweak';customMessage.textContent='Draft changed. Select Apply code to update your generated code.';});
 function parseCustomCode(format,target,text){
  if(!text.trim())throw Error('Paste some code first.');
  if(format==='lua')return [{slot:target,source:text.trim()}];
@@ -25,10 +25,10 @@ function parseCustomCode(format,target,text){
  return [...bySlot.values()];
 }
 document.getElementById('apply-custom').addEventListener('click',()=>{
- try{const tweaks=parseCustomCode(customFormat.value,customTarget.value,customText.value);config.customTweaks=tweaks;customDraft();save();customMessage.textContent='Applied. Custom code is included in your six copy parts. Lua syntax and game compatibility need an in-game check.';}
+ try{const tweaks=parseCustomCode(customFormat.value,customTarget.value,customText.value);config.customTweaks=tweaks;customDraft();save();customMessage.textContent='Applied. Custom code is included in your generated code. Lua syntax and game compatibility need an in-game check.';}
  catch(error){customMessage.textContent=error.message;}
 });
-document.getElementById('clear-custom').addEventListener('click',()=>{delete config.customTweaks;delete config.customDraft;showCustomDraft();save();customMessage.textContent='Custom code removed from your copy parts.';});
+document.getElementById('clear-custom').addEventListener('click',()=>{delete config.customTweaks;delete config.customDraft;showCustomDraft();save();customMessage.textContent='Custom code removed from your generated code.';});
 function customTabState(active){customRoot.hidden=active!=='custom';for(const id of ['configuration-tab','commands-tab','custom-tab']){const on=id===active+'-tab';document.getElementById(id).classList[on?'add':'remove']('active');document.getElementById(id).setAttribute('aria-pressed',String(on));}}
 document.getElementById('custom-tab').addEventListener('click',()=>{document.getElementById('configuration').hidden=true;document.getElementById('outputs').hidden=true;customTabState('custom');});
 for(const tab of ['configuration','commands'])document.getElementById(tab+'-tab').addEventListener('click',()=>{document.getElementById('outputs').hidden=false;customTabState(tab);});
