@@ -87,6 +87,7 @@ local layoutRotation = 0
 
 --Render stuff
 local drawLineQueue = {}
+local drawLabelQueue = {}
 local timer = 0
 local renderingToGame = false;
 
@@ -139,6 +140,7 @@ local function GetIntersectingLineIndices(layout, r)
 end
 
 local function TranslateLayout(layout, dx, dz)
+  for _, t in ipairs(layout.labels or {}) do t[1]=t[1]+dx; t[2]=t[2]+dz end
   for _, group in pairs(layout.buildings) do
     for _, pos in ipairs(group) do
       pos[1] = pos[1] + dx
@@ -314,6 +316,8 @@ end
 -------------------------------------END COMMAND PATTERN-------------------------------------
 
 function ClearLayoutActions(cmd, workLayout)
+  local oldLabels=workLayout.labels or {}
+  table.insert(cmd.actions,{doAction=function() workLayout.labels={} end,undoAction=function() workLayout.labels=oldLabels end})
   -- Remove all lines
   for _, line in ipairs(workLayout.lines) do
     PushRemLineAction(cmd, workLayout, unpack(line))
@@ -334,6 +338,10 @@ function ClearLayout(layout)
 end
 
 function MakeLayoutActions(cmd, workLayout)
+  for _, t in ipairs(workLayout.labels or {}) do
+    local label={t[1],t[2],t[3]}
+    table.insert(cmd.actions,{doAction=function() currentLayout.labels=currentLayout.labels or {}; table.insert(currentLayout.labels,label) end,undoAction=function() for i,v in ipairs(currentLayout.labels or {}) do if v==label then table.remove(currentLayout.labels,i); break end end end})
+  end
   -- Add all lines
   for _, line in ipairs(workLayout.lines) do
     PushAddLineAction(cmd, currentLayout, unpack(line))
@@ -414,6 +422,14 @@ local function ApplyRotationAndInversion(layout, rotation, invert)
       pos[1] = newX
       pos[2] = newZ
     end
+  end
+  -- Transform label anchors with the same rotation/mirror.
+  for _, t in ipairs(layout.labels or {}) do
+    local ox,oz=t[1]-cx,t[2]-cz
+    local rx,rz=ox,oz
+    if rotation==90 then rx,rz=-oz,ox elseif rotation==180 then rx,rz=-ox,-oz elseif rotation==270 then rx,rz=oz,-ox end
+    t[1],t[2]=cx+rx,cz+rz
+    if invert then local a=GetCameraSnappedAngle(); if a==90 or a==270 then t[1]=2*cx-t[1] else t[2]=2*cz-t[2] end end
   end
   -- TRANSFROM LINES
   for _, line in ipairs(layout.lines) do
@@ -594,6 +610,10 @@ end
 end
 
 local function CollectAndDraw()
+  drawLabelQueue={}
+  for _, t in ipairs(currentLayout.labels or {}) do
+    if type(t[1])=="number" and type(t[2])=="number" and type(t[3])=="string" then local x,z=BUToWorld(t[1],t[2]); table.insert(drawLabelQueue,{x=x,z=z,text=t[3]:sub(1,120)}) end
+  end
 	DrawEdges(CollectEdges())
 end
 
@@ -618,6 +638,8 @@ local function CopyLayout(src)
   for _, line in ipairs(src.lines) do
     table.insert(copy.lines, {line[1], line[2], line[3], line[4]})
   end
+  copy.labels={}
+  for _, t in ipairs(src.labels or {}) do table.insert(copy.labels,{t[1],t[2],t[3]}) end
   return copy
 end
 
@@ -695,6 +717,9 @@ local function SaveLayout(slot, layout)
     indentLevel = indentLevel - 1
     addLine("},")
 
+    addLine("labels = {")
+    for _, t in ipairs(wLayout.labels or {}) do addLine(string.format("{%g, %g, %q},",t[1],t[2],t[3])) end
+    addLine("},")
     -- Serialize lines
     addLine("lines = {")
     indentLevel = indentLevel + 1
@@ -2350,17 +2375,22 @@ function widget:Update(dt)
   timer = timer + dt
   if timer > 0.1 then
     for i = 1, 10 do
-      if #drawLineQueue == 0 then
+      if #drawLineQueue == 0 and #drawLabelQueue > 0 then
+        local t=table.remove(drawLabelQueue,1)
+        Spring.MarkerAddPoint(t.x,Spring.GetGroundHeight(t.x,t.z),t.z,t.text,true)
+      elseif #drawLineQueue == 0 then
         Spring.Echo("[LayoutPlanner] All lines rendered..")
 		    renderinToGame = false
         return
       end
 
+      if #drawLineQueue > 0 then
       local data = table.remove(drawLineQueue, 1)
       Spring.MarkerAddLine(
         data.startX, data.y, data.startZ,
         data.endX,   data.y, data.endZ
       )
+      end
     end
     timer = 0
   end
