@@ -2,6 +2,13 @@
   'use strict';
   const host=document.getElementById('planner-community-view');
   if(!host)return;
+  const planner=document.getElementById('planner'),frame=planner.querySelector('iframe'),plannerTab=document.getElementById('planner-tab');
+  function showPlannerView(community){plannerTab.click();host.hidden=!community;frame.hidden=community;document.getElementById('planner-own').setAttribute('aria-pressed',String(!community));document.getElementById('planner-community').setAttribute('aria-pressed',String(community));}
+  document.getElementById('planner-own').addEventListener('click',()=>showPlannerView(false));
+  document.getElementById('planner-community').addEventListener('click',()=>showPlannerView(true));
+  document.getElementById('planner-community-create').addEventListener('click',()=>showPlannerView(false));
+  plannerTab.addEventListener('click',()=>{host.hidden=true;frame.hidden=false;});
+
   for(const p of host.querySelectorAll('p'))if(p.textContent.trim()==='No community layouts have been shared here yet.')p.remove();
   const layouts=[{id:'blackbunker',title:'Blackbunker. mid-endgame',author:'Blackout',guide:"Designed for x2 BP+ BR\n\nIf fast enough, replace converters with gunz",count:822,file:'community-blackbunker.txt',preview:'community-blackbunker-preview.svg'}];
   const gallery=document.createElement('section');gallery.className='community-gallery';
