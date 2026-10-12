@@ -1,53 +1,40 @@
 (() => {
   'use strict';
-  const videoId = 'OaMACADqMMQ';
-  const open = document.getElementById('music-open');
-  const panel = document.getElementById('music-panel');
-  const toggle = document.getElementById('music-toggle');
-  const volume = document.getElementById('music-volume');
-  const status = document.getElementById('music-status');
-  if (!open || !panel) return;
-  let player, ready = false, playing = false, requested = false;
-  const level = () => Math.max(0, Math.min(100, Number(volume.value) || 0));
-  function createPlayer() {
-    if (player || !window.YT?.Player) return;
-    player = new YT.Player('music-player', {
-      width: '320', height: '200', videoId,
-      playerVars: { playsinline: 1, loop: 1, playlist: videoId, origin: location.origin },
-      events: {
-        onReady(event) {
-          ready = true;
-          event.target.setVolume(level());
-          toggle.disabled = false;
-          status.textContent = 'Quiet volume · 15% by default';
-          if (requested) event.target.playVideo();
-        },
-        onStateChange(event) {
-          playing = event.data === YT.PlayerState.PLAYING;
-          toggle.textContent = playing ? 'Pause music' : 'Play music';
-          if (playing) status.textContent = 'Playing quietly';
-        },
-        onAutoplayBlocked() { status.textContent = 'Your browser needs one click: press Play music.'; },
-        onError() { status.textContent = 'This track cannot play here. Use the YouTube link below.'; }
-      }
-    });
+  const audio = document.getElementById('background-music');
+  const button = document.getElementById('music-open');
+  const slider = document.getElementById('music-volume');
+  const output = document.getElementById('music-level');
+  if (!audio || !button || !slider) return;
+  const read = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
+  const save = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
+  let wanted = read('nutty-music-enabled', 'true') !== 'false';
+  let waiting = false;
+  const storedVolume = Number(read('nutty-music-volume', '15'));
+  slider.value = Number.isFinite(storedVolume) ? Math.max(0, Math.min(100, storedVolume)) : 15;
+  function setVolume() { audio.volume = Number(slider.value) / 100; output.textContent = slider.value + '%'; }
+  function refresh() {
+    const playing = !audio.paused;
+    button.textContent = playing ? '♫ Music on · turn off' : waiting && wanted ? '♫ Play music' : '♫ Music off · turn on';
+    button.setAttribute('aria-pressed', String(playing));
+    button.title = 'Cosmic Family Flight · quiet background music';
   }
-  open.onclick = () => {
-    panel.hidden = false;
-    open.setAttribute('aria-expanded', 'true');
-    requested = true;
-    if (ready) { player.setVolume(level()); player.playVideo(); return; }
-    if (window.YT?.Player) { createPlayer(); return; }
-    if (document.getElementById('music-youtube-api')) return;
-    const previous = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => { if (typeof previous === 'function') previous(); createPlayer(); };
-    const script = document.createElement('script');
-    script.id = 'music-youtube-api'; script.src = 'https://www.youtube.com/iframe_api';
-    script.onerror = () => { status.textContent = 'Music could not load. Try the YouTube link.'; };
-    document.head.appendChild(script);
+  async function play() {
+    if (!wanted) return;
+    setVolume();
+    try { await audio.play(); waiting = false; } catch { waiting = true; }
+    refresh();
+  }
+  button.onclick = () => {
+    if (!audio.paused || (wanted && !waiting)) { wanted = false; waiting = false; audio.pause(); }
+    else { wanted = true; play(); }
+    save('nutty-music-enabled', String(wanted));
+    refresh();
   };
-  toggle.onclick = () => { if (!ready) return; if (playing) player.pauseVideo(); else { player.setVolume(level()); player.playVideo(); } };
-  volume.oninput = () => { document.getElementById('music-level').textContent = level() + '%'; if (ready) player.setVolume(level()); };
-  document.getElementById('music-close').onclick = () => { requested = false; if (ready) player.pauseVideo(); panel.hidden = true; open.setAttribute('aria-expanded', 'false'); };
-  open.onclick();
+  slider.oninput = () => { setVolume(); save('nutty-music-volume', slider.value); };
+  audio.addEventListener('play', refresh);
+  audio.addEventListener('pause', refresh);
+  audio.addEventListener('error', () => { waiting = false; button.textContent = 'Music unavailable'; });
+  document.addEventListener('pointerdown', event => { if (waiting && wanted && event.target !== button) play(); });
+  setVolume(); refresh();
+  if (wanted) play();
 })();
