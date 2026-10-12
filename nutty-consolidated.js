@@ -3,7 +3,10 @@
   const byId = new Map(COMMUNITY_TWEAKS.map(t => [t.id, t]));
   const state = () => config.community ||= {profile:'will', difficulty:'custom', extras:{}, library:[], lobbyTag:''};
   const source = (id) => byId.get(id).source.replaceAll('$HP_MULTIPLIER$', String(id === 'queen-hp-template' ? config.queenHP || 1 : config.raptorHP || 1));
-  const LIGHT_EFFECTS_LUA="-- LIGHT_EFFECTS_START\ndo\n -- Visual-only changes: keep every combat, targeting and movement property intact.\n for _,name in ipairs({'steel_dome','epic_starfall','epic_calamity','epic_ragnarok','armannit4','cordoomt4','legbastiont4','epic_bastion'}) do\n  local unit=UnitDefs[name]\n  if unit then for _,weapon in pairs(unit.weapondefs or {}) do\n   if weapon.cegtag=='arty-heavy-purple' then\n    -- Keep the projectile's purple colour/model; remove the dense particle wake.\n    weapon.cegtag=''\n   end\n   weapon.smoketrail=false\n   weapon.smoketrailcastshadow=false\n   weapon.camerashake=0\n  end end\n end\nend\n-- LIGHT_EFFECTS_END\r\n";
+  const EFFECTS_LUA="do\n local level=$LEVEL$\n local custom={steel_dome=true,epic_starfall=true,epic_calamity=true,epic_ragnarok=true,armannit4=true,cordoomt4=true,legbastiont4=true,epic_bastion=true}\n for name,unit in pairs(UnitDefs) do\n  local raptor=name:find('raptor',1,true)~=nil\n  if custom[name] or (level>=2 and raptor) or level>=3 then\n   for _,weapon in pairs(unit.weapondefs or {}) do\n    if level>=2 or weapon.cegtag=='arty-heavy-purple' then weapon.cegtag='' end\n    weapon.smoketrail=false weapon.smoketrailcastshadow=false weapon.camerashake=0\n    if level>=2 then\n     local kind=string.lower(weapon.weapontype or '')\n     if kind~='shield' then\n      weapon.explosiongenerator=custom[name] and (level==3 and 'custom:laserhit-mini-purple' or 'custom:laserhit-small-purple') or 'custom:laserhit-mini'\n     end\n    end\n   end\n   if level>=3 then unit.leavetracks=false if unit.customparams then unit.customparams.usebuildinggrounddecal=false end end\n  end\n end\nend";
+  function effectsMode(){const e=state().extras;return ['off','light','medium','heavy'].includes(e.effectsMode)?e.effectsMode:e.lightEffects===false?'off':'light';}
+  function populationSettings(){const base=Number(config.values.raptor_spawncountmult)||1;const enabled=config.mode==='Raptors'&&state().extras.fewerRaptors===true;const count=enabled?Math.max(1,Math.round(base/2)):base;return {base,count,hp:base/count,enabled};}
+  function populationLua(){const p=populationSettings();if(!p.enabled||p.hp===1)return '';return 'do local factor='+p.hp+' for name,u in pairs(UnitDefs) do if (name:match("^raptor_land_") or name:match("^raptor_air_") or name:match("^raptor_allterrain_")) and not name:find("queen",1,true) and not name:find("turret",1,true) and tonumber(u.health) then u.health=math.ceil(u.health*factor) end end end';}
   const originalGenerate = generate;
   const originalGame = gameCommands;
   const priorities = ['raptor-hp-template','queen-hp-template','main-defs','eco-t3','builders-t3','defences-t3','defences-t4','mini-bosses','mini-bosses-extended','wave-challenge','cross-faction-t2','lrpc-rebalance','eco-t4','rflrpc-t4','air-rework-t4','unit-launchers','geo+walls-t3','mega-nuke'];
@@ -23,7 +26,8 @@
         catch{window.luaparse.parse(code,{luaVersion:'5.1'});definitionSources.push(code);}
       }else definitionSources.push(code);
     }
-    if(state().extras.lightEffects!==false)definitionSources.push(compactLua(LIGHT_EFFECTS_LUA));
+    const level={light:1,medium:2,heavy:3}[effectsMode()];if(level)definitionSources.push(compactLua(EFFECTS_LUA.replace('$LEVEL$',String(level))));
+    const population=populationLua();if(population)definitionSources.push(population);
     const unitChunks=[];
     for(const code of unitSources){
       if(slotCommand('tweakunits9',code).length<=14480){unitChunks.push(code);continue;}
@@ -116,6 +120,7 @@
     }
     for(const id of c.library || []) if(byId.get(id)?.misc)extras+='do\n'+source(id)+'\nend\n';
     if(extras)appendSource(commands,'tweakdefs',extras);
+    const population=populationSettings();if(population.enabled)commands=commands.map(line=>line.replace(/^(!(?:bset\s+)?raptor_spawncountmult)\s+\S+$/i,'$1 '+population.count));
     commands=packForBar(commands);
     for(const [slot,code] of Object.entries(config.slotEdits || {})) {
       if(!/^tweak(?:defs|units)[0-9]?$/.test(slot))continue;
@@ -123,7 +128,7 @@
       const re=new RegExp('^!bset '+slot+' \\S+$','i');
       commands=commands.filter(c=>!re.test(c));commands.push(slotCommand(slot,code));
     }
-    const room=commands.find(c=>c.startsWith('$rename '));
+    let room=commands.find(c=>c.startsWith('$rename '));if(room&&population.enabled)room=room.replace(/\[[^\]]+xRHP\]/,'['+Number(((config.raptorHP||1)*population.hp).toFixed(3))+'xRHP]');
     commands=commands.filter(c=>!c.startsWith('$rename '));
     if(room)commands.push(room);
     return [cleanCommands(commands).join('\n')];
@@ -149,8 +154,10 @@
     for(const [id,label] of [['geo','T3 geothermal buildings & walls'],['rebalance','Standard Ragnarok / Calamity / Starfall rebalance']]){
       const l=el('label','tweak-row'),box=el('input');box.type='checkbox';box.checked=!!c.extras[id];box.addEventListener('change',()=>{c.extras[id]=box.checked;save();});l.append(box,el('span','',label));controls.append(l);
     }
-    const performance=el('label','tweak-row'),performanceBox=el('input');performanceBox.type='checkbox';performanceBox.checked=c.extras.lightEffects!==false;performanceBox.setAttribute('aria-label','Lighter effects');performanceBox.addEventListener('change',()=>{c.extras.lightEffects=performanceBox.checked;save();});performance.append(performanceBox,el('span','','Lighter effects · keep purple shots and impacts'));controls.append(performance);
-    controls.append(el('p','hint','Reduces dense purple trails, smoke and camera shake on custom defences and artillery. Damage, range, firing speed and targeting stay the same. Applies to your next game.'));
+    field('Performance effects',[['off','Off · full effects'],['light','Light · fewer custom trails'],['medium','Medium · lighter custom and raptor effects'],['heavy','Heavy · minimal effects for all units']],effectsMode(),v=>{c.extras.effectsMode=v;});
+    controls.append(el('p','hint','Light keeps full impacts. Medium trims custom and raptor trails and impacts. Heavy uses small impact flashes throughout the battle and disables tracks/building decals. Projectile colours, models and combat stats stay the same. Applies to the next game.'));
+    const populationBox=el('input');populationBox.type='checkbox';populationBox.checked=c.extras.fewerRaptors===true;populationBox.setAttribute('aria-label','Fewer, tougher raptors');populationBox.addEventListener('change',()=>{c.extras.fewerRaptors=populationBox.checked;renderAll();});const populationControl=el('label','tweak-row');populationControl.append(populationBox,el('span','','Fewer, tougher raptors'));controls.append(populationControl);
+    const p=populationSettings();controls.append(el('p','hint',p.enabled?(p.hp===1?'Wave multiplier is already at BAR’s minimum (1×); no further reduction is applied.':'Wave multiplier '+p.base+'× → '+p.count+'×; mobile raptor HP gets an extra '+Number(p.hp.toFixed(3))+'×. Queens stay unchanged. Rounding follows BAR’s whole-number wave setting; difficulty will feel different.'):'Optional: roughly halve the wave multiplier and raise mobile raptor HP to compensate. Queens, damage and speed stay unchanged.'));
     const tag=el('input');tag.type='text';tag.maxLength=100;tag.value=c.lobbyTag;tag.placeholder='Optional lobby tag';tag.setAttribute('aria-label','Lobby name tag');tag.addEventListener('input',()=>{c.lobbyTag=tag.value;save();});const wrap=el('label','consolidation-field');wrap.append(el('span','','Lobby name tag'),tag);controls.append(wrap);
     const presets=el('div','toolbar');for(const [name,key] of [['Community default','default'],['Casual start','casual'],['Timuela · EvoEco','timuela']]){
       const b=el('button','',name);b.addEventListener('click',()=>applyPreset(key));presets.append(b);
@@ -245,6 +252,3 @@
   const oldRenderAll=renderAll;renderAll=function(){oldRenderAll();renderExtras();};
   renderAll();renderWorkshop();
 })();
-
-
-(()=>{const tab=document.getElementById('planner-tab'),view=document.getElementById('planner-community-view'),frame=document.querySelector('#planner iframe');if(!tab||!view||!frame)return;const own=()=>{view.hidden=true;frame.hidden=false;};tab.addEventListener('click',own);document.getElementById('planner-own').onclick=()=>{tab.click();own();};document.getElementById('planner-community').onclick=()=>{tab.click();frame.hidden=true;view.hidden=false;};document.getElementById('planner-community-create').onclick=()=>{tab.click();own();};})();
