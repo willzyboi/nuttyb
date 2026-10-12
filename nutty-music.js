@@ -27,7 +27,7 @@
           toggle.textContent = playing ? 'Pause music' : 'Play music';
           if (playing) status.textContent = 'Playing quietly';
         },
-        onAutoplayBlocked() { status.textContent = 'Press Play music to start.'; },
+        onAutoplayBlocked() { status.textContent = 'Your browser needs one click: press Play music.'; },
         onError() { status.textContent = 'This track cannot play here. Use the YouTube link below.'; }
       }
     });
@@ -49,4 +49,5 @@
   toggle.onclick = () => { if (!ready) return; if (playing) player.pauseVideo(); else { player.setVolume(level()); player.playVideo(); } };
   volume.oninput = () => { document.getElementById('music-level').textContent = level() + '%'; if (ready) player.setVolume(level()); };
   document.getElementById('music-close').onclick = () => { requested = false; if (ready) player.pauseVideo(); panel.hidden = true; open.setAttribute('aria-expanded', 'false'); };
+  open.onclick();
 })();
