@@ -1,4 +1,5 @@
 (()=>{'use strict';
+if(new URLSearchParams(location.search).get('embedded')==='1')document.body.classList.add('embedded');
 const D=window.PLANNER_DATA,M=D.mapSize,$=id=>document.getElementById(id),units=new Map(D.units.map(u=>[u.id,u]));
 const width=b=>units.get(b.type)[b.rot?'fz':'fx']*16,height=b=>units.get(b.type)[b.rot?'fx':'fz']*16;
 const overlap=(a,b)=>a.x<b.x+width(b)&&a.x+width(a)>b.x&&a.z<b.z+height(b)&&a.z+height(a)>b.z;
