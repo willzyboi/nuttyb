@@ -3,6 +3,7 @@
   const byId = new Map(COMMUNITY_TWEAKS.map(t => [t.id, t]));
   const state = () => config.community ||= {profile:'will', difficulty:'custom', extras:{}, library:[], lobbyTag:''};
   const source = (id) => byId.get(id).source.replaceAll('$HP_MULTIPLIER$', String(id === 'queen-hp-template' ? config.queenHP || 1 : config.raptorHP || 1));
+  const LIGHT_EFFECTS_LUA="-- LIGHT_EFFECTS_START\ndo\n -- Visual-only changes: keep every combat, targeting and movement property intact.\n for _,name in ipairs({'steel_dome','epic_starfall','epic_calamity','epic_ragnarok','armannit4','cordoomt4','legbastiont4','epic_bastion'}) do\n  local unit=UnitDefs[name]\n  if unit then for _,weapon in pairs(unit.weapondefs or {}) do\n   if weapon.cegtag=='arty-heavy-purple' then\n    -- Keep the projectile's purple colour/model; remove the dense particle wake.\n    weapon.cegtag=''\n   end\n   weapon.smoketrail=false\n   weapon.smoketrailcastshadow=false\n   weapon.camerashake=0\n  end end\n end\nend\n-- LIGHT_EFFECTS_END\r\n";
   const originalGenerate = generate;
   const originalGame = gameCommands;
   const priorities = ['raptor-hp-template','queen-hp-template','main-defs','eco-t3','builders-t3','defences-t3','defences-t4','mini-bosses','mini-bosses-extended','wave-challenge','cross-faction-t2','lrpc-rebalance','eco-t4','rflrpc-t4','air-rework-t4','unit-launchers','geo+walls-t3','mega-nuke'];
@@ -22,6 +23,7 @@
         catch{window.luaparse.parse(code,{luaVersion:'5.1'});definitionSources.push(code);}
       }else definitionSources.push(code);
     }
+    if(state().extras.lightEffects!==false)definitionSources.push(compactLua(LIGHT_EFFECTS_LUA));
     const unitChunks=[];
     for(const code of unitSources){
       if(slotCommand('tweakunits9',code).length<=14480){unitChunks.push(code);continue;}
@@ -147,6 +149,8 @@
     for(const [id,label] of [['geo','T3 geothermal buildings & walls'],['rebalance','Standard Ragnarok / Calamity / Starfall rebalance']]){
       const l=el('label','tweak-row'),box=el('input');box.type='checkbox';box.checked=!!c.extras[id];box.addEventListener('change',()=>{c.extras[id]=box.checked;save();});l.append(box,el('span','',label));controls.append(l);
     }
+    const performance=el('label','tweak-row'),performanceBox=el('input');performanceBox.type='checkbox';performanceBox.checked=c.extras.lightEffects!==false;performanceBox.setAttribute('aria-label','Lighter effects');performanceBox.addEventListener('change',()=>{c.extras.lightEffects=performanceBox.checked;save();});performance.append(performanceBox,el('span','','Lighter effects · keep purple shots and impacts'));controls.append(performance);
+    controls.append(el('p','hint','Reduces dense purple trails, smoke and camera shake on custom defences and artillery. Damage, range, firing speed and targeting stay the same. Applies to your next game.'));
     const tag=el('input');tag.type='text';tag.maxLength=100;tag.value=c.lobbyTag;tag.placeholder='Optional lobby tag';tag.setAttribute('aria-label','Lobby name tag');tag.addEventListener('input',()=>{c.lobbyTag=tag.value;save();});const wrap=el('label','consolidation-field');wrap.append(el('span','','Lobby name tag'),tag);controls.append(wrap);
     const presets=el('div','toolbar');for(const [name,key] of [['Community default','default'],['Casual start','casual'],['Timuela · EvoEco','timuela']]){
       const b=el('button','',name);b.addEventListener('click',()=>applyPreset(key));presets.append(b);
