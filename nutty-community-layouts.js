@@ -2,6 +2,14 @@
   'use strict';
   const host=document.getElementById('planner-community-view');
   if(!host)return;
+  for(const p of host.querySelectorAll('p'))if(p.textContent.trim()==='No community layouts have been shared here yet.')p.remove();
+  const card=document.createElement('article');card.className='community-layout-upload';
+  const heading=document.createElement('h3');heading.textContent='Blackbunker. mid-endgame';card.append(heading);
+  const credit=document.createElement('p');credit.textContent='Created by Blackout · Full Metal Plate · 822 placements';card.append(credit);
+  const guide=document.createElement('p');guide.style.whiteSpace='pre-line';guide.textContent="Designed for x2 BP+ BR\n\nIf fast enough, replace converters with gunz";card.append(guide);
+  const download=document.createElement('a');download.className='community-submit-link';download.href='community-blackbunker.txt';download.download='layout_20.txt';download.textContent='Download layout (.txt)';card.append(download);
+  const instructions=document.createElement('p');instructions.textContent='Import this file in Make your own to view or edit it. For BAR, save it as layout_20.txt in LuaUI/Widgets and load slot 20 with Noryon’s Layout Planner.';card.append(instructions);
+  host.prepend(card);
   const section=document.createElement('section');section.className='community-layout-upload';
   section.innerHTML='<h3>Upload community layout</h3><p>Share your base plan with a title and guide. Submissions are reviewed before appearing in the community list.</p><form id="community-layout-form"><label>Layout file (.txt)<input id="community-layout-file" type="file" accept=".txt,text/plain" required></label><label>Layout title<input id="community-layout-title" maxlength="80" placeholder="Starz corner layout" required></label><label>Created by<input id="community-layout-author" maxlength="80" placeholder="Your name" required></label><label>Written guide<textarea id="community-layout-guide" rows="5" maxlength="4000" placeholder="Explain where to place your layout, what to build first, and any useful tips." required></textarea></label><label>BAR file slot<input id="community-layout-slot" type="number" min="1" max="20" value="20" required></label><button class="primary" type="submit">Prepare community upload</button><p id="community-layout-status" role="status"></p><a id="community-layout-submit" class="community-submit-link" target="_blank" rel="noopener" hidden>Open GitHub submission ↗</a><p id="community-layout-next" hidden>Attach the prepared TXT file to the GitHub submission, then submit it. You need a GitHub account. This sends it for review; it does not publish automatically.</p></form>';
   host.append(section);
