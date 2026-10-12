@@ -6,6 +6,17 @@ const overlap=(a,b)=>a.x<b.x+width(b)&&a.x+width(a)>b.x&&a.z<b.z+height(b)&&a.z+
 function valid(b,list,ignore=-1){return units.has(b.type)&&b.x>=0&&b.z>=0&&b.x+width(b)<=M&&b.z+height(b)<=M&&!list.some((v,i)=>i!==ignore&&overlap(b,v));}
 function validateLayout(data){if(!data||data.version!==1||data.mapSize!==M||!Array.isArray(data.buildings)||data.buildings.length>2000)throw Error('Choose a valid Full Metal Plate layout (up to 2,000 buildings).');const list=[];for(const b of data.buildings){if(!b||!units.has(b.type)||!Number.isInteger(b.x)||!Number.isInteger(b.z)||b.x%16||b.z%16||typeof b.rot!=='boolean')throw Error('Layout contains an invalid building or position.');const clean={type:b.type,x:b.x,z:b.z,rot:b.rot};if(!valid(clean,list))throw Error('Layout contains overlapping buildings or positions outside the map.');list.push(clean);}return list;}
 window.NuttyPlannerGeometry={width,height,overlap,valid,validateLayout};
+function noryonExport(list){
+ if(!list.length)throw Error('Place at least one building before exporting.');
+ const minX=Math.min(...list.map(b=>b.x))/16,minZ=Math.min(...list.map(b=>b.z))/16;
+ const maxX=Math.max(...list.map(b=>b.x+width(b)))/16,maxZ=Math.max(...list.map(b=>b.z+height(b)))/16;
+ const groups={1:[],2:[],3:[],4:[],6:[],12:[]},lines=[];
+ for(const b of list){const x=b.x/16-minX,z=b.z/16-minZ,w=width(b)/16,h=height(b)/16;
+ if(w===h&&groups[w])groups[w].push([x,z]);else lines.push([x,z,x+w,z],[x+w,z,x+w,z+h],[x+w,z+h,x,z+h],[x,z+h,x,z]);}
+ const numbers=a=>'{'+a.join(', ')+'}';
+ return 'return {\n width = '+(maxX-minX+1)+',\n height = '+(maxZ-minZ+1)+',\n minSize = 1,\n layout = {\n buildings = {\n'+Object.entries(groups).map(([size,positions])=>'['+size+'] = {'+positions.map(numbers).join(',')+'},').join('\n')+'\n},\n lines = {'+lines.map(numbers).join(',')+'}\n}\n}\n';
+}
+window.NuttyPlannerGeometry.noryonExport=noryonExport;
 const mapTexture=new Image();mapTexture.onload=()=>draw();mapTexture.onerror=()=>tell('Map texture could not load. Footprints and grid are still available.');mapTexture.src='planner-map.webp';
 let buildings=[],selected=-1,tool=null,rotation=false,zoom=8,cx=2500,cz=1500,history=[],future=[],drag=null,hover=null;
 const board=$('board'),ctx=board.getContext('2d'),mini=$('overview'),mc=mini.getContext('2d');let W=1000,H=620;
@@ -42,6 +53,7 @@ function savedList(){$('saved').replaceChildren();for(const name of Object.keys(
 $('save').onclick=()=>{const name=$('layout-name').value.trim();if(!name)return tell('Give this layout a name first.');if(Object.hasOwn(saved,name)&&!confirm('Replace the saved layout “'+name+'”?'))return;saved[name]=JSON.parse(JSON.stringify(payload()));try{localStorage.setItem('nutty-base-layouts-v1',JSON.stringify(saved));savedList();$('saved').value=name;tell('Saved '+name+' in this browser.');}catch{tell('Storage is full. Export this layout instead.');}};
 $('load').onclick=()=>{const d=saved[$('saved').value];if(!d)return;try{const next=validateLayout(d);remember();buildings=next;selected=-1;$('layout-name').value=d.name||'';changed();tell('Loaded '+d.name);}catch(e){tell(e.message);}};
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
+$('bar-export').onclick=()=>{try{const slot=Number($('bar-slot').value);if(!Number.isInteger(slot)||slot<1||slot>20)throw Error('Choose slot 1–20.');download(new Blob([noryonExport(buildings)],{type:'text/plain'}),'layout_'+slot+'.txt');tell('Exported for Noryon’s Layout Planner. Follow the setup steps below.');}catch(e){tell(e.message);}};
 $('export').onclick=()=>download(new Blob([JSON.stringify(payload(),null,2)],{type:'application/json'}),'nutty-base-layout.json');$('import').onchange=async()=>{const f=$('import').files[0];if(!f)return;try{if(f.size>2e6)throw Error('Choose a layout smaller than 2 MB.');const d=JSON.parse(await f.text()),next=validateLayout(d);remember();buildings=next;selected=-1;$('layout-name').value=typeof d.name==='string'?d.name.slice(0,80):'';changed();tell('Imported layout.');}catch(e){tell(e.message);}finally{$('import').value='';}};
 $('png').onclick=()=>{const c=document.createElement('canvas');c.width=c.height=2048;drawScene(c.getContext('2d'),2048,2048,2048/M,0,0);try{c.toBlob(b=>{if(b)download(b,'nutty-base-layout.png');});}catch{tell('Image export needs the hosted planner when map details are enabled. Turn Map details off to export the grid locally.');}};$('clear').onclick=()=>{if(!buildings.length||!confirm('Clear the current map? Saved layouts will stay available.'))return;remember();buildings=[];selected=-1;changed();};
 board.addEventListener('keydown',e=>{if(e.key==='Delete'){$('delete').click();e.preventDefault();}if(e.key.toLowerCase()==='r')$('rotate').click();if(e.key==='Escape')choose(null);if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();$(e.shiftKey?'redo':'undo').click();}});
