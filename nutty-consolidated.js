@@ -242,3 +242,5 @@
   renderAll();renderWorkshop();
 })();
 
+
+(()=>{const tab=document.getElementById('planner-tab'),view=document.getElementById('planner-community-view'),frame=document.querySelector('#planner iframe');if(!tab||!view||!frame)return;const own=()=>{view.hidden=true;frame.hidden=false;};tab.addEventListener('click',own);document.getElementById('planner-own').onclick=()=>{tab.click();own();};document.getElementById('planner-community').onclick=()=>{tab.click();frame.hidden=true;view.hidden=false;};document.getElementById('planner-community-create').onclick=()=>{tab.click();own();};})();
