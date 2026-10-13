@@ -25,7 +25,7 @@ const GROUPS=[
  ['Steel Dome',['STEEL_DOME']]
 ];
 const UNIT_LABELS={MAIN_DEFS:'Main Defs',MAIN_UNITS:'Main Units',ARMADA_COMMANDER:'Armada Commander',CORTEX_COMMANDER:'Cortex Commander',LEGION_COMMANDER:'Legion Commander',LEGENDARY_BASTION:'Legendary Bastion',LEGENDARY_BULWARK:'Legendary Bulwark',LEGENDARY_PULSAR:'Legendary Pulsar',BASTION:'Epic Bastion',CALAMITY:'Epic Calamity',EPIC_ELYSIUM:'Epic Elysium',FORTRESS:'Epic Fortress',RAGNAROK:'Epic Ragnarok',STARFALL:'Epic Starfall'};
-const LIMITS=[['T3_BUILDERS','T3 Builders',40],['UNIT_LAUNCHERS','Unit Launchers',9999],['RAGNAROK','Epic Ragnarok',9999],['CALAMITY','Epic Calamity',9999],['T4_AIR','Epic Tyrannus',9999],['STARFALL','Epic Starfall',9999]];
+const LIMITS=[['T3_BUILDERS','T3 Builders',40],['UNIT_LAUNCHERS','Behemoth Launchers',5],['RAGNAROK','Epic Ragnarok',9999],['CALAMITY','Epic Calamity',9999],['T4_AIR','Epic Tyrannus',9999],['STARFALL','Epic Starfall',9999]];
 const DEPENDENCIES={T3_ECO:['T3_BUILDERS'],T4_ECO:['T3_BUILDERS','T3_ECO'],LEGENDARY_BASTION:['T3_BUILDERS'],LEGENDARY_BULWARK:['T3_BUILDERS'],LEGENDARY_PULSAR:['T3_BUILDERS'],BASTION:['T3_BUILDERS'],CALAMITY:['T3_BUILDERS'],EPIC_ELYSIUM:['T3_BUILDERS'],FORTRESS:['T3_BUILDERS'],RAGNAROK:['T3_BUILDERS'],STARFALL:['T3_BUILDERS']};
 const LUA_SOURCES={};
 BASE_PARTS.forEach((part,pi)=>part.commands.forEach((command,ci)=>{const m=command.match(/^!bset (tweak\w+) (\S+)$/i);if(m&&m[2]!=='0')LUA_SOURCES[pi+'/'+ci]={slot:m[1],source:decodeLua(m[2])};}));
@@ -41,7 +41,7 @@ function slotCommand(slot,source){return '!bset '+slot+' '+(source.trim()?encode
 function markerBlocks(source){return Array.from(source.matchAll(/--\s*([A-Z0-9_]+)_START\r?\n[\s\S]*?--\s*\1_END/g),m=>({id:m[1],code:m[0]}));}
 function hasCode(source){return source.replace(/--[^\n]*/g,'').trim().length>0;}
 function selected(id){if(id==='HP_2X')return config.mode==='Raptors'&&config.raptorHP>0;if(id==='QHP_2X')return config.mode==='Raptors'&&config.queenHP>0;if(id==='MINI_BOSSES')return config.mode==='Raptors'&&config.wave==='mini';if(id==='EVO_XP')return ['ARMADA_COMMANDER','CORTEX_COMMANDER','LEGION_COMMANDER'].some(x=>config.enabled[x]);return config.enabled[id]!==false;}
-function limitCode(id){const value=config.limits[id];if(value===undefined||value===''||!selected(id))return '';const n=Number(value);let names=[];
+function limitCode(id){const value=config.limits[id];if(value===undefined||value===''||!selected(id))return '';const n=id==='UNIT_LAUNCHERS'?Math.max(1,Math.min(5,Number(value)||5)):Number(value);let names=[];
  if(id==='T3_BUILDERS')names=['armt3aide','armt3airaide','cort3aide','cort3airaide','legt3aide','legt3airaide'];
  if(id==='UNIT_LAUNCHERS')names=['armbotrail_armt3','armbotrail_cort3','armbotrail_legt3','armbotrail_armvadert4'];
  if(id==='RAGNAROK')names=['epic_ragnarok'];if(id==='CALAMITY')names=['epic_calamity'];if(id==='STARFALL')names=['epic_starfall'];if(id==='T4_AIR')names=['legfortt4'];
