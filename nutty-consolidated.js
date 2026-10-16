@@ -22,11 +22,12 @@
     function visit(node){
       if(!node||typeof node!=='object')return;
       if(node.type==='AssignmentStatement'&&node.variables.some(v=>v.type==='MemberExpression'&&['epic_calamity','epic_ragnarok'].includes(v.identifier?.name))){
+        const factor=node.variables.some(v=>v.type==='MemberExpression'&&v.identifier?.name==='epic_calamity')?4:2;
         const tables=node.init.flatMap(v=>v.type==='CallExpression'?v.arguments:[v]);
         for(const table of tables)for(const field of fields(table))if(field.key?.name==='weapondefs')for(const weapon of fields(field.value))for(const stat of fields(weapon.value)){
           const key=stat.key?.name;
-          if(['reloadtime','energypershot','metalpershot'].includes(key)&&stat.value.type==='NumericLiteral')edits.push([stat.value.range,stat.value.value*2]);
-          if(key==='damage')for(const armour of fields(stat.value))if(armour.value.type==='NumericLiteral')edits.push([armour.value.range,armour.value.value*2]);
+          if(['reloadtime','energypershot','metalpershot'].includes(key)&&stat.value.type==='NumericLiteral')edits.push([stat.value.range,stat.value.value*factor]);
+          if(key==='damage')for(const armour of fields(stat.value))if(armour.value.type==='NumericLiteral')edits.push([armour.value.range,armour.value.value*factor]);
         }
       }
       for(const [key,value]of Object.entries(node))if(key!=='range'){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}
