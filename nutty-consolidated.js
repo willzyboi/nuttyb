@@ -16,6 +16,25 @@
     for(const token of tokens){const gap=previous && ((/[\w]$/.test(previous)&&/^[\w]/.test(token))||(previous==='-'&&token==='-')||(previous==='['&&token.startsWith('['))||(previous.endsWith(']')&&token===']')||(/\d$/.test(previous)&&token.startsWith('.'))||(previous.endsWith('.')&&(/^[\d.]/.test(token))));out+=(gap?' ':'')+token;previous=token;}
     return out;
   }
+  function halfRateEpicDefinitions(code) {
+    const ast=window.luaparse.parse(code,{luaVersion:'5.1',ranges:true}),edits=[];
+    const fields=(table)=>table?.type==='TableConstructorExpression'?table.fields:[];
+    function visit(node){
+      if(!node||typeof node!=='object')return;
+      if(node.type==='AssignmentStatement'&&node.variables.some(v=>v.type==='MemberExpression'&&['epic_calamity','epic_ragnarok'].includes(v.identifier?.name))){
+        const tables=node.init.flatMap(v=>v.type==='CallExpression'?v.arguments:[v]);
+        for(const table of tables)for(const field of fields(table))if(field.key?.name==='weapondefs')for(const weapon of fields(field.value))for(const stat of fields(weapon.value)){
+          const key=stat.key?.name;
+          if(['reloadtime','energypershot','metalpershot'].includes(key)&&stat.value.type==='NumericLiteral')edits.push([stat.value.range,stat.value.value*2]);
+          if(key==='damage')for(const armour of fields(stat.value))if(armour.value.type==='NumericLiteral')edits.push([armour.value.range,armour.value.value*2]);
+        }
+      }
+      for(const [key,value]of Object.entries(node))if(key!=='range'){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}
+    }
+    visit(ast);
+    for(const [range,value]of edits.sort((a,b)=>b[0][0]-a[0][0]))code=code.slice(0,range[0])+value+code.slice(range[1]);
+    return code;
+  }
   function packForBar(lines) {
     const result=lines.filter(c=>!/^!bset tweak(?:defs|units)\d* /i.test(c));
     const slots=lines.map(c=>c.match(/^!bset (tweak(defs|units)(\d*)) (\S+)$/i)).filter(m=>m&&m[4]!=='0').sort((a,b)=>(a[2]==='units'?0:1)-(b[2]==='units'?0:1)||Number(a[3]||0)-Number(b[3]||0));
@@ -30,8 +49,6 @@
     const population=populationLua();if(population)definitionSources.push(population);
     definitionSources.push(compactLua("-- COMBAT_POPULATION_RULES_START\ndo\n local defs=UnitDefs or {}\n for name,u in pairs(defs) do\n  local mobile=(tonumber(u.speed or u.maxvelocity) or 0)>0 or u.canfly==true\n  local support=u.builder==true or (tonumber(u.workertime) or 0)>0 or u.canresurrect==true\n  if mobile and not support and u.weapons and next(u.weapons) then\n   u.customparams=u.customparams or {}\n   u.customparams.wmod_blocked_combat=true\n  end\n end\n for name,u in pairs(defs) do\n  if (name=='armbotrail' or name:match('^armbotrail_')) and name~='armbotrail_cort3' then\n   u.maxthisunit=0\n   u.customparams=u.customparams or {}\n   u.customparams.wmod_blocked_combat=true\n  end\n end\n for _,u in pairs(defs) do\n  if u.buildoptions then\n   for i=#u.buildoptions,1,-1 do\n    local option=defs[u.buildoptions[i]]\n    if option and option.customparams and option.customparams.wmod_blocked_combat then table.remove(u.buildoptions,i) end\n   end\n  end\n end\n for name,u in pairs(defs) do\n  if name=='armbotrail' or name:match('^armbotrail_') then\n   if name=='armbotrail_cort3' then u.maxthisunit=10 end\n   u.customparams=u.customparams or {}\n   u.customparams.i18n_en_humanname='Cortex Behemoth Launcher'\n   u.customparams.i18n_en_tooltip='Cortex Behemoths only. 10 launchers/player; 5 stored shots; 10s reload.'\n   for _,w in pairs(u.weapondefs or {}) do\n    if w.customparams and w.customparams.spawns_name then\n     w.stockpile=true\n     w.stockpiletime=20\n     w.reloadtime=10\n     w.burst=1\n     w.projectiles=1\n     w.customparams.stockpilelimit=5\n     w.customparams.spawns_name='corjugg'\n     w.customparams.spawns_count=1\n     w.customparams.spawns_mode=nil\n     w.customparams.spawns_debris=nil\n    end\n   end\n  end\n end\n\n if defs.armbotrail_cort3 then\n  local t3={armt3aide=true,armt3airaide=true,cort3aide=true,cort3airaide=true,legt3aide=true,legt3airaide=true}\n  for name,u in pairs(defs) do\n   local faction=name:match('^arm') or name:match('^leg') or name:match('^cor')\n   local mobile=(tonumber(u.speed or u.maxvelocity) or 0)>0 or u.canfly==true\n   if t3[name] or (faction and mobile and u.builder==true and u.buildoptions and next(u.buildoptions)) then\n    u.buildoptions=u.buildoptions or {}\n    local found=false\n    for _,option in pairs(u.buildoptions) do if option=='armbotrail_cort3' then found=true break end end\n    if not found then u.buildoptions[#u.buildoptions+1]='armbotrail_cort3' end\n   end\n  end\n end\nend\n-- COMBAT_POPULATION_RULES_END\n"));
     definitionSources.push(compactLua("-- QUEEN_PHASE_STABILITY_START\ndo\n local defs=UnitDefs or {}\n local disabled={steel_dome=true,legstarfall_scav=true,legministarfall_scav=true,epic_starfall=true,legstarfall=true,legministarfall=true,armvulc=true,corbuzz=true,armminivulc=true,corminibuzz=true,armvulc_scav=true,corbuzz_scav=true,armminivulc_scav=true,corminibuzz_scav=true}\n for name in pairs(disabled) do if defs[name] then defs[name].maxthisunit=0 end end\n for _,u in pairs(defs) do\n  if u.buildoptions then for i=#u.buildoptions,1,-1 do if disabled[u.buildoptions[i]] then table.remove(u.buildoptions,i) end end end\n end\n local u=defs.epic_elysium\n if u then\n  u.maxthisunit=nil\n  u.customparams=u.customparams or {}\n  u.customparams.i18n_en_tooltip='Shield with faint visuals.'\n end\n for _,unit in pairs(defs) do\n  for _,weapon in pairs(unit.weapondefs or {}) do\n   if string.lower(weapon.weapontype or '')=='shield' and weapon.shield then\n    weapon.shield.alpha=0.03\n    weapon.shield.visiblerepulse=false\n   end\n  end\n end\n -- Keep the engine fallback name consistent with the translated custom name.\n local names={armannit4='Legendary Pulsar',cordoomt4='Legendary Bulwark',legbastiont4='Legendary Bastion',epic_elysium='Epic Elysium',epic_calamity='Epic Calamity',epic_ragnarok='Epic Ragnarok'}\n for name,unit in pairs(defs) do\n  local cp=unit.customparams or {}\n  local label=names[name] or cp.i18n_en_humanname or unit.name\n  if type(label)=='string' and label~='' then\n   unit.name=label\n   unit.customparams=cp\n   cp.i18n_en_humanname=label\n   cp.i18nfromunit=nil\n   cp.i18n_en_tooltip=cp.i18n_en_tooltip or unit.description or unit.tooltip or label\n   unit.description=cp.i18n_en_tooltip\n  end\n end\nend\n-- QUEEN_PHASE_STABILITY_END\n"));
-    // Half as many epic artillery shots, with unchanged nominal DPS and resource use.
-    definitionSources.push(compactLua("do local defs=UnitDefs or {} for _,name in ipairs({'epic_ragnarok','epic_calamity'}) do local unit=defs[name] if unit then for _,weapon in pairs(unit.weapondefs or {}) do if tonumber(weapon.reloadtime) and weapon.damage then weapon.reloadtime=weapon.reloadtime*2 for armour,damage in pairs(weapon.damage) do if type(damage)=='number' then weapon.damage[armour]=damage*2 end end if tonumber(weapon.energypershot) then weapon.energypershot=weapon.energypershot*2 end if tonumber(weapon.metalpershot) then weapon.metalpershot=weapon.metalpershot*2 end end end end end end"));
     const unitChunks=[];
     for(const code of unitSources){
       if(slotCommand('tweakunits9',code).length<=14480){unitChunks.push(code);continue;}
@@ -42,7 +59,8 @@
       if(fields.length)unitChunks.push('{'+fields.join(',')+'}');
     }
     const definitionChunks=[];let current='';
-    for(const code of definitionSources){
+    for(const originalCode of definitionSources){
+      const code=halfRateEpicDefinitions(originalCode);
       const ast=window.luaparse.parse(code,{luaVersion:'5.1',ranges:true});
       // Preserve each original slot's scope. Most slots are already isolated do/end blocks.
       const scoped=ast.body.every(n=>n.type==='DoStatement')?ast.body.map(n=>code.slice(...n.range)):['do '+code+' end'];
