@@ -610,11 +610,8 @@ end
 end
 
 local function CollectAndDraw()
-  drawLabelQueue={}
-  for _, t in ipairs(currentLayout.labels or {}) do
-    if type(t[1])=="number" and type(t[2])=="number" and type(t[3])=="string" then local x,z=BUToWorld(t[1],t[2]); table.insert(drawLabelQueue,{x=x,z=z,text=t[3]:sub(1,120)}) end
-  end
-	DrawEdges(CollectEdges())
+  drawLabelQueue={} -- Layout names and labels never create map pings.
+  DrawEdges(CollectEdges())
 end
 
 local function CopyLayout(src)
@@ -1604,6 +1601,13 @@ function widget:Initialize()
   
   
 
+  content:Add(MakeButton({
+    text = "Hive Push Reminder",
+    fontSize = 20,
+    bgColor = {0.45, 0.16, 0.025, 1.0},
+    tooltip = "Remind players not to push the hives before they spawn",
+    onClick = function() Spring.SendCommands({"say Please do not push the hives with units or launchers before they spawn!!"}) end
+  }))
   content:Add(MakeLabel({ bgColor = {0,0,0,0}, text = "Layout Slots:", fontSize = 14 }))
   
   
@@ -2377,7 +2381,7 @@ function widget:Update(dt)
     for i = 1, 10 do
       if #drawLineQueue == 0 and #drawLabelQueue > 0 then
         local t=table.remove(drawLabelQueue,1)
-        Spring.MarkerAddPoint(t.x,Spring.GetGroundHeight(t.x,t.z),t.z,t.text,true)
+        -- Text map pings disabled.
       elseif #drawLineQueue == 0 then
         Spring.Echo("[LayoutPlanner] All lines rendered..")
 		    renderinToGame = false

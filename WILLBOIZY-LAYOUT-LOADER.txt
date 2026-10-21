@@ -1,13 +1,12 @@
-Willboizy Layout Loader — compact edition
+Layout Planner by Noryon — Hive Reminder edition
 
-Adapted from Layout Planner by Noryon (MIT): https://github.com/noryon/BARLayoutPlanner
+Original project: https://github.com/noryon/BARLayoutPlanner
+Original author: Noryon. License: MIT. Hive reminder added for Willboizy.
 
-Install gui_willboizy_layout_loader.lua in your BAR data folder under LuaUI/Widgets. Disable the original Layout Planner in the widget list before enabling Willboizy Layout Loader. Keep layout_1.txt through layout_20.txt in LuaUI/Widgets.
+Put LayoutPlanner.lua and layout_1.txt through layout_20.txt in BAR's LuaUI/Widgets folder. Disable Willboizy Layout Loader and enable Layout Planner.
 
-Click the dropdown and select Layout 01–20. Selection opens the placement preview; Load reloads the selected slot. Click on the map to position it. R rotates, I mirrors, right-click cancels. Press Render to draw map marks. Clear Layout clears the active layout and preview; it does not delete imported files or already rendered map marks.
+Use Noryon's existing Load buttons, place the preview, then Render. Original drawing, editing, rotation, placement and line rendering are retained.
 
-Auto Erase Reminder and Hive Reminder each send one lobby chat message when clicked. The hive message is: Please do not push the hives with units or launchers before they spawn!!
+Hive Push Reminder sends: Please do not push the hives with units or launchers before they spawn!!
 
-Editing controls, save buttons, drawing tools and editing keyboard shortcuts are disabled. Existing website layout files remain supported. Individual building divisions are preserved.
-
-Validation: Lua parsing and mocked runtime control checks passed. Live BAR testing is still needed.
+Building names and imported text labels never create map pings in this edition. Existing map marks must be erased separately.
