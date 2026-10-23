@@ -10,6 +10,15 @@
  });
  for(const id of others)document.getElementById(id+'-tab').addEventListener('click',()=>{root.hidden=true;tab.classList.remove('active');tab.setAttribute('aria-pressed','false');});
  for(const id of ['planner-own','planner-community'])document.getElementById(id)?.addEventListener('click',()=>{root.hidden=true;tab.classList.remove('active');tab.setAttribute('aria-pressed','false');});
+ const patchButton=document.querySelector('.patch-notes-button');
+ if(patchButton){
+  const actions=document.createElement('span');
+  actions.style.cssText='display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center';
+  const shortcut=document.createElement('button');
+  shortcut.id='header-suggestions';shortcut.type='button';shortcut.className='patch-notes-button';shortcut.textContent='Suggestions';
+  shortcut.addEventListener('click',()=>{tab.click();root.scrollIntoView({behavior:'smooth',block:'start'});});
+  patchButton.replaceWith(actions);actions.append(patchButton,shortcut);
+ }
  const form=document.getElementById('suggestion-form'),link=document.getElementById('suggestion-submit'),status=document.getElementById('suggestion-status');
  form.addEventListener('input',()=>{link.hidden=true;status.textContent='Prepare your suggestion when you are ready.';});
  form.addEventListener('submit',event=>{
