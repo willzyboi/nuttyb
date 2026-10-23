@@ -2,7 +2,7 @@
  const root=document.getElementById('suggestions');
  const tab=document.getElementById('suggestions-tab');
  if(!root||!tab)return;
- const others=['configuration','custom','widgets','library','planner'];
+ const others=['configuration','custom','widgets','library','planner','tools'];
  tab.addEventListener('click',()=>{
   for(const id of others){document.getElementById(id).hidden=true;const b=document.getElementById(id+'-tab');b.classList.remove('active');b.setAttribute('aria-pressed','false');}
   document.getElementById('outputs').hidden=true;
