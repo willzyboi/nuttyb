@@ -61,6 +61,7 @@
       for(const field of expression.fields){const part=code.slice(field.range[0]-7,field.range[1]-7);const next='{'+[...fields,part].join(',')+'}';if(fields.length&&slotCommand('tweakunits9',next).length>14480){unitChunks.push('{'+fields.join(',')+'}');fields=[];}fields.push(part);if(slotCommand('tweakunits9','{'+part+'}').length>14480)throw Error('One unit definition is too large for a BAR slot. Reduce it in the Workshop.');}
       if(fields.length)unitChunks.push('{'+fields.join(',')+'}');
     }
+    definitionSources.push(compactLua("do\n local u=(UnitDefs or {}).epic_starfall\n local w=u and u.weapondefs and u.weapondefs.epic_purple_cataclysm\n if w then\n  w.name='Queenfire Starfall Barrage'\n  w.model='SimpleFlareXL.s3o'\n  w.texture1='orangenovaexplo'\n  w.texture2='sporetrail_xl'\n  w.cegtag='nuketrail-roost'\n  w.rgbcolor='1 0.35 0.06'\n  w.rgbcolor2='1 0.75 0.2'\n  w.size=12\n  w.sizedecay=0\n  w.explosiongenerator='custom:genericshellexplosion-huge-bomb'\n  w.camerashake=0\n  u.customparams=u.customparams or {}\n  u.customparams.i18n_en_tooltip='Queenfire artillery barrage. 32,000 base DPS; 3,000 range. Queen-style fireballs with the native Starfall firing cycle.'\n end\nend"));
     const definitionChunks=[];let current='';
     for(const originalCode of definitionSources){
       const code=halfRateEpicDefinitions(originalCode);
