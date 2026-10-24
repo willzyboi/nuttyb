@@ -194,7 +194,8 @@
     }
     loadQuick.addEventListener('click',loadWillboizy);
     copyQuick.addEventListener('click',async()=>{loadWillboizy();await copy(generate().join('\n'),copyQuick);});
-    quick.append(title,loadQuick,copyQuick);controls.append(quick);
+    const copyHint=el('span','hint',"← This is Willboizy's lobby preset code — just paste it into your BAR lobby.");copyHint.style.margin='0';copyHint.style.flex='1 1 260px';copyQuick.setAttribute('aria-describedby','willboizy-copy-hint');copyHint.id='willboizy-copy-hint';
+    const copyGuide=el('div','toolbar');copyGuide.style.flex='1 1 420px';copyGuide.style.minWidth='0';copyGuide.style.flexWrap='nowrap';copyQuick.style.flexShrink='0';copyGuide.append(copyQuick,copyHint);quick.append(title,loadQuick,copyGuide);controls.append(quick);
 
     field('Arsenal rules',[['will','Willboizy’s custom arsenal'],['community','Community NuttyB arsenal']],c.profile,v=>{c.profile=v;});
     field('Difficulty package',[['custom','My own settings'],['easy','Easy · 1.3× health'],['medium','Medium · 1.5× health'],['hard','Hard · 3× health']],c.difficulty,v=>{
