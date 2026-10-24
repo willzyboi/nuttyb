@@ -172,7 +172,7 @@
   save=function(){try{originalSave();document.getElementById('command-count').textContent=outputs[0].split('\n').length+' commands · '+new TextEncoder().encode(outputs[0]).length.toLocaleString()+' bytes';}catch(error){document.getElementById('status').textContent=error.message;}};
   const count=el('p','hint');count.id='command-count';document.getElementById('generated').before(count);
   const panel=el('section','panel consolidation-panel');panel.id='community-settings';
-  panel.append(el('h2','','More ways to play'),el('p','hint','Choose a ruleset, then shape the battle. Community artillery uses its own balance; Willboizy’s rules keep your custom Epic Starfall.'));
+  panel.append(el('h2','','More ways to play'),el('p','hint','Choose a ruleset, then shape the battle.'));
   const controls=el('div','consolidation-controls');panel.append(controls);
   document.getElementById('configuration').prepend(panel);
   function field(label,options,value,change) {
