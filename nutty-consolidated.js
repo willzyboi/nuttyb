@@ -1,5 +1,6 @@
 'use strict';
 (() => {
+  const WILLBOIZY_LOBBY_SETTINGS={"mode":"Raptors","map":"Full Metal Plate (12P)","start":"No Rush","wave":"mini","raptorHP":2,"queenHP":2,"values":{"teamsize":12,"assistdronesbuildpowermultiplier":1,"commanderbuildersbuildpower":1000,"commanderbuildersrange":1000,"disablemapdamage":1,"experimentalextraunits":1,"experimentallegionfaction":1,"maxunits":10000,"multiplier_energyconversion":1,"multiplier_energyproduction":1,"multiplier_losrange":1,"multiplier_maxvelocity":1,"multiplier_metalextraction":1,"multiplier_radarrange":1,"multiplier_turnrate":1,"multiplier_weapondamage":1,"multiplier_weaponrange":1,"raptor_spawntimemult":1,"releasecandidates":1,"startenergy":10000,"startenergystorage":10000,"startmetal":10000,"startmetalstorage":10000,"scavunitsforplayers":1,"forceallunits":1,"unit_restrictions_noair":0,"unit_restrictions_noendgamelrpc":0,"unit_restrictions_noextractors":1,"unit_restrictions_nolrpc":0,"unit_restrictions_notacnukes":0,"evocom":0,"unit_restrictions_nonukes":1,"multiplier_resourceincome":2,"multiplier_shieldpower":2,"multiplier_builddistance":2,"multiplier_buildpower":2,"raptor_queen_count":100,"raptor_spawncountmult":3,"raptor_firstwavesboost":4,"raptor_graceperiodmult":3,"raptor_queentimemult":1.3,"startpostype":2,"tweakunits4":0,"tweakunits5":0,"tweakunits6":0,"tweakunits7":0,"tweakunits8":0,"tweakunits9":0,"tweakdefs9":0}};
   const byId = new Map(COMMUNITY_TWEAKS.map(t => [t.id, t]));
   const state = () => config.community ||= {profile:'will', difficulty:'custom', extras:{}, library:[], lobbyTag:''};
   const source = (id) => byId.get(id).source.replaceAll('$HP_MULTIPLIER$', String(id === 'queen-hp-template' ? config.queenHP || 1 : config.raptorHP || 1));
@@ -181,6 +182,20 @@
   }
   function renderExtras() {
     controls.replaceChildren();const c=state();
+    const quick=el('div','toolbar');quick.style.gridColumn='1 / -1';quick.style.flexWrap='wrap';
+    const title=el('strong',"","Willboizy's Lobby Settings"),loadQuick=el('button',"",'Load preset'),copyQuick=el('button','primary','Copy lobby code');
+    function loadWillboizy(){
+      const base=defaults(),p=WILLBOIZY_LOBBY_SETTINGS;
+      config={...base,mode:p.mode,map:p.map,start:p.start,wave:p.wave,raptorHP:p.raptorHP,queenHP:p.queenHP};
+      for(const [id,,min,max]of SLIDERS)if(Number.isFinite(p.values[id]))config.values[id]=Math.max(min,Math.min(max,p.values[id]));
+      config.community={profile:'will',difficulty:'custom',extras:{geo:false,rebalance:false,effectsMode:'off',reducedDeaths:true},library:[],lobbyTag:''};
+      renderAll();renderExtras();if(typeof showCustomDraft==='function')showCustomDraft();
+      document.getElementById('status').textContent="Willboizy's lobby settings loaded with the latest game code.";
+    }
+    loadQuick.addEventListener('click',loadWillboizy);
+    copyQuick.addEventListener('click',async()=>{loadWillboizy();await copy(generate().join('\n'),copyQuick);});
+    quick.append(title,loadQuick,copyQuick);controls.append(quick);
+
     field('Arsenal rules',[['will','Willboizy’s custom arsenal'],['community','Community NuttyB arsenal']],c.profile,v=>{c.profile=v;});
     field('Difficulty package',[['custom','My own settings'],['easy','Easy · 1.3× health'],['medium','Medium · 1.5× health'],['hard','Hard · 3× health']],c.difficulty,v=>{
       c.difficulty=v;if(v==='custom')return;config.raptorHP=config.queenHP={easy:1.3,medium:1.5,hard:3}[v];enable('CROSS_FACTION',v!=='hard');for(const id of ['LEGENDARY_BASTION','LEGENDARY_BULWARK','LEGENDARY_PULSAR'])enable(id,v!=='hard');
