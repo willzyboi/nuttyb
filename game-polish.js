@@ -28,6 +28,7 @@ move(0);update();
 })();
 
 (()=>{'use strict';const changes=[
+{"date":"Oct 25, 2026","title":"Patch 2026.10.25.3: set Behemoth launcher base range to 2,000 and update its tooltip."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.2: lower Doombringer minimum Evolution to 115%. Preserve one unit per selected squad and Legendary Bastion at 140,000 HP."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.1: set Legendary Bastion to a fixed 140,000 HP, independent of Legendary Bulwark health. Doombringer settings unchanged."},
 {"date":"Oct 24, 2026","title":"Patch 2026.10.24.14: Doombringer minimum tech evolution 125%; add 100,000 HP to Legendary Bastion."},
