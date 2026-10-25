@@ -28,6 +28,7 @@ move(0);update();
 })();
 
 (()=>{'use strict';const changes=[
+{"date":"Oct 25, 2026","title":"Patch 2026.10.25.5: Epic Calamity, Epic Ragnarok and Epic Starfall now have 2,300 base weapon range in both rulesets."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.4: Triple existing Behemoth launcher ammunition metal and energy costs per shot."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.3: set Behemoth launcher base range to 2,000 and update its tooltip."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.2: lower Doombringer minimum Evolution to 115%. Preserve one unit per selected squad and Legendary Bastion at 140,000 HP."},
