@@ -28,6 +28,7 @@ move(0);update();
 })();
 
 (()=>{'use strict';const changes=[
+{"date":"Oct 25, 2026","title":"Patch 2026.10.25.7: increase Behemoth launcher base range to 3,000. Keep tripled ammunition costs and Epic artillery at 2,300."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.6: increase Behemoth launcher base range from 2,000 to 2,300. Keep tripled ammunition costs."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.5: Epic Calamity, Epic Ragnarok and Epic Starfall now have 2,300 base weapon range in both rulesets."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.4: Triple existing Behemoth launcher ammunition metal and energy costs per shot."},
