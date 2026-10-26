@@ -28,6 +28,7 @@ move(0);update();
 })();
 
 (()=>{'use strict';const changes=[
+{"date":"Oct 26, 2026","title":"Patch 2026.10.26.7: Purple Cataclysm launcher metal and energy construction costs now match Epic Ragnarok in the selected ruleset. Willboizy base cost: 180,000 metal and 2,600,000 energy. Firing costs stay unchanged."},
 {"date":"Oct 26, 2026","title":"Patch 2026.10.26.6: replace the launcher Tumbleweed explosion with BAR’s purple Juno pulse and Juno impact sound. Keep the huge purple projectile, direct-hit damage, friendly-fire protection, 3,200 range, Hold Fire and adjustable build limit."},
 {"date":"Oct 26, 2026","title":"Patch 2026.10.26.5: Purple Cataclysm launcher range 3,200; unlimited launchers by default. Set a per-player cap in Rules & performance (0 = unlimited). Shell deals 1,500,000 direct-hit damage with a large explosion visual; splash damage is disabled to protect allies. Launchers start on Hold Fire. Custom cap is preserved when copying Willboizy lobby code."},
 {"date":"Oct 26, 2026","title":"Patch 2026.10.26.4: Epic Calamity, Ragnarok and Starfall range 2,500; Purple Cataclysm launcher range 4,500. Refresh script cache versions so new pages load the 100,000-HP Bastion and new launcher instead of cached older code."},
