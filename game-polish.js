@@ -28,6 +28,7 @@ move(0);update();
 })();
 
 (()=>{'use strict';const changes=[
+{"date":"Oct 26, 2026","title":"Patch 2026.10.26.2: Purple Cataclysm launcher fires a giant purple shell every 30 seconds: 1,500,000 centre damage, 1,500 blast area and Tumbleweed explosion. Mobile build options limited to constructors and satellites; combat units disabled."},
 {"date":"Oct 26, 2026","title":"Patch 2026.10.26.1: restore launcher range 7,550 and original Epic artillery ranges. Keep triple launcher ammunition costs and weapon-type error fix."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.9: guard non-string weapon types that stopped match tweaks. Apply launcher and combat restrictions separately after other modules; retain 3,500 range and tripled ammunition costs."},
 {"date":"Oct 25, 2026","title":"Patch 2026.10.25.8: set Behemoth launcher base range to 3,500. Keep tripled ammunition costs and Epic artillery at 2,300."},
