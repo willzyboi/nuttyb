@@ -28,6 +28,7 @@ move(0);update();
 })();
 
 (()=>{'use strict';const changes=[
+{"date":"Oct 27, 2026","title":"Patch 2026.10.27.1: Purple Cataclysm launcher shots now cost 25,000 metal. Energy per shot remains 540,000."},
 {"date":"Oct 26, 2026","title":"Patch 2026.10.26.7: Purple Cataclysm launcher metal and energy construction costs now match Epic Ragnarok in the selected ruleset. Willboizy base cost: 180,000 metal and 2,600,000 energy. Firing costs stay unchanged."},
 {"date":"Oct 26, 2026","title":"Patch 2026.10.26.6: replace the launcher Tumbleweed explosion with BAR’s purple Juno pulse and Juno impact sound. Keep the huge purple projectile, direct-hit damage, friendly-fire protection, 3,200 range, Hold Fire and adjustable build limit."},
 {"date":"Oct 26, 2026","title":"Patch 2026.10.26.5: Purple Cataclysm launcher range 3,200; unlimited launchers by default. Set a per-player cap in Rules & performance (0 = unlimited). Shell deals 1,500,000 direct-hit damage with a large explosion visual; splash damage is disabled to protect allies. Launchers start on Hold Fire. Custom cap is preserved when copying Willboizy lobby code."},
