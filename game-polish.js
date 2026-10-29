@@ -27,7 +27,7 @@ const intro=document.querySelector('header .intro');if(intro)intro.textContent='
 move(0);update();
 })();
 
-(()=>{'use strict';const changes=[
+(()=>{'use strict';const changes=[{date:"Oct 29, 2026",title:"Patch 2026.10.29.2: Normal retains original Doombringer spawning; custom spawn overrides apply only in Doomers mode. Request a large image for shared config links."},
 {"date":"Oct 29, 2026","title":"Patch 2026.10.29.1: add Doomers mode to Difficulty package, keeping the existing custom settings, Cataclysm launcher and upgraded Bastion. Normal restores Behemoth launchers and the original Legendary Bastion; uses 1.5x Raptor/Queen HP, 12 queens, 2x waves and 3x first-wave boost. Both retain the Starfall fix. Main Raptors/Scavengers mode stays separate."},
 {"date":"Oct 27, 2026","title":"Patch 2026.10.27.2: Purple Cataclysm launcher range increased from 3,200 to 3,700. Metal per shot reduced from 25,000 to 10,000. Energy per shot remains 540,000."},
 {"date":"Oct 27, 2026","title":"Patch 2026.10.27.1: Purple Cataclysm launcher shots now cost 25,000 metal. Energy per shot remains 540,000."},
