@@ -12,7 +12,10 @@
       if(saved){config.values={...config.values,...saved.values};config.enabled={...config.enabled,...saved.enabled};config.limits={...saved.limits};for(const key of ['wave','raptorHP','queenHP','scavHP','bossHP'])if(saved[key]!==undefined)config[key]=saved[key];}
     }else{
       if(c.difficulty==='hard')c.hardSettings=packageSnapshot();
-      if(value!=='custom'){
+      if(value==='normal'){
+        const original=WILLBOIZY_LOBBY_SETTINGS;config.raptorHP=original.raptorHP;config.queenHP=original.queenHP;
+        for(const key of ['raptor_queen_count','raptor_spawncountmult','raptor_firstwavesboost'])config.values[key]=original.values[key];
+      }else if(value!=='custom'){
         config.raptorHP=config.queenHP={easy:1.3,normal:1.5,medium:1.5}[value]||1.5;
         config.values.raptor_queen_count=12;config.values.raptor_spawncountmult=2;config.values.raptor_firstwavesboost=3;
       }
