@@ -7,27 +7,33 @@ const arsenal=sections.find(e=>e.querySelector('#tweak-options'));
 const tuning=sections.find(e=>e.querySelector('#resource-sliders'));
 const community=document.getElementById('community-settings');
 if(!battle||!arsenal||!tuning)return;
-const hero=document.createElement('div');hero.className='game-intro';hero.innerHTML='<span class="pro-eyebrow">YOUR NEXT BATTLE</span><h2>Make it your game.</h2><p>Set the battlefield, choose your arsenal, then fine-tune the challenge.</p>';
-const nav=document.createElement('nav');nav.className='game-step-nav';nav.setAttribute('aria-label','Battle setup sections');
-const panels=[[battle,community],[arsenal],[tuning]];const names=['Battlefield','Arsenal','Fine-tuning'];const hints=['Map, mode & rules','Units, waves & limits','Economy & difficulty'];let current=0;
-const summary=document.createElement('div');summary.className='battle-summary';summary.setAttribute('aria-live','polite');
-function show(i){current=i;panels.forEach((group,n)=>group.forEach(e=>{if(e)e.classList.toggle('pro-step-hidden',n!==i);}));Array.from(nav.children).forEach((b,n)=>{b.setAttribute('aria-current',n===i?'step':'false');});}
-for(let i=0;i<3;i++){const b=document.createElement('button');b.type='button';b.innerHTML='<span class="step-number">'+(i+1)+'</span><span><strong>'+names[i]+'</strong><small>'+hints[i]+'</small></span>';b.addEventListener('click',()=>show(i));nav.append(b);}
-configArea.prepend(hero,nav,summary);
-const route=document.createElement('div');route.className='game-step-footer';const previous=document.createElement('button');previous.textContent='← Previous';const next=document.createElement('button');next.className='primary';next.textContent='Next: Arsenal →';const review=document.createElement('button');review.textContent='Review & copy setup';
-function move(i){show(i);previous.disabled=i===0;next.disabled=i===2;next.textContent=i===0?'Next: Arsenal →':i===1?'Next: Fine-tuning →':'All sections reviewed';}
-previous.addEventListener('click',()=>move(Math.max(0,current-1)));next.addEventListener('click',()=>move(Math.min(2,current+1)));review.addEventListener('click',()=>document.getElementById('outputs').scrollIntoView({behavior:'smooth',block:'start'}));route.append(previous,next,review);configArea.append(route);
-nav.addEventListener('click',()=>move(current));
-function update(){const value=id=>{const e=document.getElementById(id);return e?.selectedOptions?.[0]?.textContent||e?.value||'';};const parts=[value('setting-Mode'),value('setting-Map'),value('setting-Start')].filter(Boolean);summary.replaceChildren();const label=document.createElement('span');label.className='summary-label';label.textContent='CURRENT SETUP';summary.append(label);for(const part of parts){const chip=document.createElement('span');chip.className='summary-chip';chip.textContent=part;summary.append(chip);}}
-configArea.addEventListener('change',update);configArea.addEventListener('input',update);
+const header = document.createElement('div');
+header.className = 'game-intro';
+header.innerHTML = '<h2>Battle setup</h2><p>Choose your game settings below, then copy the lobby code into BAR.</p>';
+
+battle.querySelector('h2').textContent = 'Map & game mode';
+community.querySelector('h2').textContent = 'Rules & difficulty';
+arsenal.querySelector('h2').textContent = 'Units & waves';
+tuning.querySelector('h2').textContent = 'Economy & balance';
+
+const actions = document.createElement('div');
+actions.className = 'setup-actions';
+const review = document.createElement('button');
+review.type = 'button';
+review.className = 'primary';
+review.textContent = 'Go to lobby code';
+review.addEventListener('click', () => {
+  document.getElementById('outputs').scrollIntoView({block:'start'});
+});
+actions.append(review);
+configArea.prepend(header, battle, community, arsenal, tuning);
+tuning.after(actions);
 const presets=document.getElementById('saved-presets');if(presets){const heading=presets.querySelector('h2');const details=document.createElement('details');details.className='presets-drawer';const title=document.createElement('summary');title.textContent='Your saved presets';details.append(title);for(const child of Array.from(presets.children))if(child!==heading)details.append(child);presets.replaceChildren(details);}
-if(community?.querySelector('h2'))community.querySelector('h2').textContent='Rules & performance';
-battle.querySelector('h2').textContent='Set the battlefield';arsenal.querySelector('h2').textContent='Choose your arsenal';tuning.querySelector('h2').textContent='Fine-tune your battle';
-const intro=document.querySelector('header .intro');if(intro)intro.textContent='Your NuttyB command centre. Build a battle in three simple steps.';
-move(0);update();
+const intro=document.querySelector('header .intro');if(intro)intro.textContent='Configure your Beyond All Reason lobby in one place.';
+
 })();
 
-(()=>{'use strict';const changes=[{date:"Nov 2, 2026",title:"Patch 2026.11.02.1: Remove Doomers mode and migrate saved selections to Normal. Start generated lobby code by clearing all twenty tweakdefs and tweakunits slots."},{date:"Oct 31, 2026",title:"Patch 2026.10.31.1: Restore light and heavy transports in Normal and Doomers modes by exempting transport units from the mobile combat restriction."},{date:"Oct 30, 2026",title:"Patch 2026.10.30.2: All Armada, Cortex and Legion commander assist drones can build their faction construction turret, including ground drones."},{date: "Oct 30, 2026",title: "Patch 2026.10.30.1: Barely visible shields at 3% opacity with hit flashes disabled."},{date:"Oct 29, 2026",title:"Patch 2026.10.29.3: restore original Normal defaults: 2x queen HP, 2x Raptor HP, 100 queens, spawn multiplier 3 and first-wave boost 4."},{date:"Oct 29, 2026",title:"Patch 2026.10.29.2: Normal retains original Doombringer spawning; custom spawn overrides apply only in Doomers mode. Request a large image for shared config links."},
+(()=>{'use strict';const changes=[{date:"Nov 6, 2026",title:"Patch 2026.11.06.1: One-page battle setup. Heavy performance and reduced death effects are always enabled. Removed the geothermal option, launcher cap and lobby tag."},{date:"Nov 3, 2026",title:"Add Scavenger Commander gantry access for all factions."},{date:"Nov 2, 2026",title:"Patch 2026.11.02.1: Remove Doomers mode and migrate saved selections to Normal. Start generated lobby code by clearing all twenty tweakdefs and tweakunits slots."},{date:"Oct 31, 2026",title:"Patch 2026.10.31.1: Restore light and heavy transports in Normal and Doomers modes by exempting transport units from the mobile combat restriction."},{date:"Oct 30, 2026",title:"Patch 2026.10.30.2: All Armada, Cortex and Legion commander assist drones can build their faction construction turret, including ground drones."},{date: "Oct 30, 2026",title: "Patch 2026.10.30.1: Barely visible shields at 3% opacity with hit flashes disabled."},{date:"Oct 29, 2026",title:"Patch 2026.10.29.3: restore original Normal defaults: 2x queen HP, 2x Raptor HP, 100 queens, spawn multiplier 3 and first-wave boost 4."},{date:"Oct 29, 2026",title:"Patch 2026.10.29.2: Normal retains original Doombringer spawning; custom spawn overrides apply only in Doomers mode. Request a large image for shared config links."},
 {"date":"Oct 29, 2026","title":"Patch 2026.10.29.1: add Doomers mode to Difficulty package, keeping the existing custom settings, Cataclysm launcher and upgraded Bastion. Normal restores Behemoth launchers and the original Legendary Bastion; uses 1.5x Raptor/Queen HP, 12 queens, 2x waves and 3x first-wave boost. Both retain the Starfall fix. Main Raptors/Scavengers mode stays separate."},
 {"date":"Oct 27, 2026","title":"Patch 2026.10.27.2: Purple Cataclysm launcher range increased from 3,200 to 3,700. Metal per shot reduced from 25,000 to 10,000. Energy per shot remains 540,000."},
 {"date":"Oct 27, 2026","title":"Patch 2026.10.27.1: Purple Cataclysm launcher shots now cost 25,000 metal. Energy per shot remains 540,000."},
