@@ -284,6 +284,45 @@ end`));
   end
  end
 end`));
+    definitionChunks.push(compactLua(`do
+ local guns,walls={},{}
+ for name,unit in pairs(UnitDefs) do
+  local params=unit.customparams or {}
+  local playerUnit=name:match('^arm') or name:match('^cor') or name:match('^leg') or name:match('^epic_')
+  local available=playerUnit and not name:find('_scav',1,true) and
+   not params.wmod_blocked_combat and tonumber(unit.maxthisunit)~=0
+  if available then
+   if params.blackouts_wall then
+    walls[#walls+1]=name
+   elseif not unit.canfly and (tonumber(unit.speed or unit.maxvelocity) or 0)==0 then
+    for _,slot in pairs(unit.weapons or {}) do
+     local gun=slot.def and (unit.weapondefs or {})[slot.def:lower()]
+     if gun and (gun.weapontype or ''):lower()~='shield' then
+      guns[#guns+1]=name
+      break
+     end
+    end
+   end
+  end
+ end
+ table.sort(guns)
+ table.sort(walls)
+ for _,faction in ipairs({'leg','cor'}) do
+  local additions=faction=='leg' and guns or walls
+  for level=1,10 do
+   local commander=UnitDefs[faction..'com'..(level==1 and '' or 'lvl'..level)]
+   if commander then
+    local options=commander.buildoptions or {}
+    local seen={}
+    for _,name in pairs(options) do seen[name]=true end
+    for _,name in ipairs(additions) do
+     if not seen[name] then options[#options+1]=name seen[name]=true end
+    end
+    commander.buildoptions=options
+   end
+  end
+ end
+end`));
     // SCAV_COMMANDER_GANTRY: run after the final combat and support-menu filters.
     {const code=compactLua("-- Separate shared gantry, available to Armada, Cortex and Legion constructors.\ndo\n local defs=UnitDefs or {}\n local boss=defs.scavengerbossv4\n local base=defs.corgant_scav or defs.corgant\n if boss and base then\n  local function copy(t)\n   local result={}\n   for k,v in pairs(t) do result[k]=type(v)=='table' and copy(v) or v end\n   return result\n  end\n  local id='wmod_scav_commander_gantry'\n  local gantry=copy(base)\n  gantry.name='Scavenger Commander Gantry'\n  gantry.description='Builds the Epic Scavenger Commander.'\n  gantry.buildoptions={'scavengerbossv4'}\n  gantry.maxthisunit=nil\n  gantry.customparams=gantry.customparams or {}\n  gantry.customparams.wmod_blocked_combat=nil\n  gantry.customparams.i18nfromunit=nil\n  gantry.customparams.i18n_en_humanname=gantry.name\n  gantry.customparams.i18n_en_tooltip=gantry.description\n  defs[id]=gantry\n  boss.maxthisunit=nil\n  boss.customparams=boss.customparams or {}\n  boss.customparams.wmod_blocked_combat=nil\n  local t3={armt3aide=true,armt3airaide=true,cort3aide=true,cort3airaide=true,legt3aide=true,legt3airaide=true}\n  for name,u in pairs(defs) do\n   local faction=name:match('^arm') or name:match('^cor') or name:match('^leg')\n   local options=u.buildoptions\n   if faction and u.builder==true and options then\n    local eligible=t3[name]\n    local found=false\n    for _,option in pairs(options) do\n     if option==id then found=true end\n     if option:find('shltx',1,true) or option:find('gant',1,true) or option:find('apt3',1,true) then eligible=true end\n    end\n    if eligible and not found then options[#options+1]=id end\n   end\n  end\n end\nend\n");const last=definitionChunks.length-1;
       if(slotCommand('tweakdefs9',definitionChunks[last]+' '+code).length<=16000)definitionChunks[last]+=' '+code;else definitionChunks.push(code);
