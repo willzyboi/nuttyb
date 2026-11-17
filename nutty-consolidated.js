@@ -106,9 +106,149 @@
     definitionChunks.push(compactLua("do\n local pluto=(UnitDefs or {}).legflak\n local slot=pluto and pluto.weapons and pluto.weapons[1]\n local name=slot and slot.def and string.lower(slot.def)\n local gun=name and pluto.weapondefs and pluto.weapondefs[name]\n if gun then\n  -- Align reload to simulation frames before calculating sustained AA damage.\n  local reload=math.max(1,math.floor((tonumber(gun.reloadtime) or 1)*30+0.5))/30\n  local rounds=math.max(1,tonumber(gun.burst) or 1)*math.max(1,tonumber(gun.projectiles) or 1)\n  gun.reloadtime=reload\n  gun.damage=gun.damage or {}\n  gun.damage.vtol=4000*reload/rounds\n end\nend\n"+"do\n local calamity=(UnitDefs or {}).epic_calamity\n if calamity then calamity.firestate=2 end\n local names={epic_calamity={'Epic Calamity','Heavy long-range plasma artillery.'},epic_ragnarok={'Epic Ragnarok','Experimental long-range beam artillery.'},epic_elysium={'Epic Elysium','Experimental area shield.'},cordoomt4={'Legendary Bulwark','Heavy defensive tower with scatter, heat-ray and point-defence weapons.'},armannit4={'Legendary Pulsar','Heavy tachyon defence tower.'},legbastiont4={'Legendary Bastion','Anti-swarm purple heat ray: 320-area blasts every 0.1 seconds. 100,000 HP; 75% less damage when fully closed/off.'}}\n local factions={arm='Armada',cor='Cortex',leg='Legion'}\n for prefix,faction in pairs(factions)do\n  names[prefix..'afust3_200']={'Legendary Fusion Reactor','Produces energy. Extremely explosive when destroyed.'}\n  names[prefix..'mmkrt3_200']={'Legendary Energy Converter','Converts energy into metal.'}\n  names[prefix..'uwadvmst3']={'T3 Hardened Metal Storage','Hardened tier 3 metal storage.'}\n  names[prefix..'uwadvest3']={'T3 Hardened Energy Storage','Hardened tier 3 energy storage.'}\n  names[prefix..'nanotct3']={'T3 Construction Turret','Tier 3 construction and repair support.'}\n end\n names.legadveconvt3_200=names.legmmkrt3_200\n names.legamstort3=names.leguwadvmst3\n names.legadvestoret3=names.leguwadvest3\n names.armadvestoret3=names.armuwadvest3\n names.coradvestoret3=names.coruwadvest3\n for key,u in pairs(UnitDefs or {})do\n  local cp=u.customparams or {} local entry=names[key]\n  local label=cp.i18n_en_humanname or (entry and entry[1]) or u.name\n  if type(label)=='string' and label~='' and label~=key and not label:match('^units%.') then\n   local description=cp.i18n_en_tooltip or (entry and entry[2]) or u.description or label\n   if type(description)~='string' or description=='' or description:match('^units%.') then description=entry and entry[2] or label end\n   u.name=label u.description=description u.customparams=cp cp.i18nfromunit=nil\n   for _,language in ipairs({'en','cs','de','es','fr','hr','it','lt','ru','zh','pl','pt','pt_br','tr','uk','ko','ja','nl','hu','en_us','en_gb'})do\n    cp['i18n_'..language..'_humanname']=label cp['i18n_'..language..'_tooltip']=description\n   end\n  end\n end\nend".replaceAll('100,000 HP; 75% less damage when fully closed/off.','Original purple heatray defensive tower.')));
     definitionChunks.push(compactLua("-- COMBAT_POPULATION_RULES_START\ndo\n local defs=UnitDefs or {}\n for name,u in pairs(defs) do\n  local mobile=(tonumber(u.speed or u.maxvelocity) or 0)>0 or u.canfly==true\n  local support=u.builder==true and u.buildoptions and next(u.buildoptions)\n  local satellite=name:match('^armsat') or name:match('^corsat') or name:match('^legsat')\n  if mobile and not support and not satellite and not ((tonumber(u.transportcapacity) or 0)>0) then\n   u.customparams=u.customparams or {}\n   u.customparams.wmod_blocked_combat=true\n   if name:match('^arm') or name:match('^cor') or name:match('^leg') then u.maxthisunit=0 end\n  end\n end\n for name,u in pairs(defs) do\n  if (name=='armbotrail' or name:match('^armbotrail_')) and name~='armbotrail_cort3' then\n   u.maxthisunit=0\n   u.customparams=u.customparams or {}\n   u.customparams.wmod_blocked_combat=true\n  end\n end\n for _,u in pairs(defs) do\n  if u.buildoptions then\n   for i=#u.buildoptions,1,-1 do\n    local option=defs[u.buildoptions[i]]\n    if option and option.customparams and option.customparams.wmod_blocked_combat then table.remove(u.buildoptions,i) end\n   end\n  end\n end\n -- Launcher ammunition must remain spawnable; combat menus stay filtered above.\n if defs.corjugg then defs.corjugg.maxthisunit=nil end\n local u=defs.armbotrail_cort3\n if u then\n  u.name='Cortex Behemoth Launcher'\n  u.customparams=u.customparams or {}\n  u.customparams.i18n_en_humanname=u.name\n  u.customparams.i18nfromunit=nil\n  local tip='Launches Cortex Behemoths. 7,550 range; 5 stored shots; 10-second reload.'\n  u.description=tip\n  for _,lang in ipairs({'en','cs','de','es','fr','hr','it','lt','ru','zh','pl','pt','pt_br','tr','uk','ko','ja','nl','hu','en_us','en_gb'}) do\n   u.customparams['i18n_'..lang..'_humanname']=u.name\n   u.customparams['i18n_'..lang..'_tooltip']=tip\n  end\n  u.firestate=0 u.maxthisunit=nil\n  for _,w in pairs(u.weapondefs or {}) do\n   if w.customparams and w.customparams.spawns_name then\n    w.range=7550 w.stockpile=true w.stockpiletime=20 w.reloadtime=10\n    w.burst=1 w.projectiles=1 w.customparams.stockpilelimit=5\n    w.customparams.spawns_name='corjugg' w.customparams.spawns_count=1\n    w.customparams.spawns_mode=nil w.customparams.spawns_debris=nil\n   end\n  end\n end\n\n if defs.armbotrail_cort3 then\n  local t3={armt3aide=true,armt3airaide=true,cort3aide=true,cort3airaide=true,legt3aide=true,legt3airaide=true}\n  for name,u in pairs(defs) do\n   local faction=name:match('^arm') or name:match('^leg') or name:match('^cor')\n   local mobile=(tonumber(u.speed or u.maxvelocity) or 0)>0 or u.canfly==true\n   if t3[name] or (faction and mobile and u.builder==true and u.buildoptions and next(u.buildoptions)) then\n    u.buildoptions=u.buildoptions or {}\n    local found=false\n    for _,option in pairs(u.buildoptions) do if option=='armbotrail_cort3' then found=true break end end\n    if not found then u.buildoptions[#u.buildoptions+1]='armbotrail_cort3' end\n   end\n  end\n end\nend\n-- COMBAT_POPULATION_RULES_END\n\ndo\n for _,name in ipairs({'epic_calamity','epic_ragnarok','epic_starfall'}) do\n  local u=(UnitDefs or {})[name]\n  if u then\n   u.customparams=u.customparams or {} u.customparams.maxrange=2500\n   for _,w in pairs(u.weapondefs or {}) do\n    if string.lower(type(w.weapontype)=='string' and w.weapontype or '')~='shield' then w.range=2500 end\n   end\n  end\n end\nend\n"));
     if (state().blackoutsSettings === true) {
+      definitionChunks.push(compactLua(`do
+ local incomeByLevel={{100,50},{1500,250},{24000,1100},{360000,5280}}
+ for level,income in ipairs(incomeByLevel) do
+  local name=level==1 and 'armcom' or 'armcomlvl'..level
+  local commander=UnitDefs[name]
+  if commander then
+   commander.energymake=income[1]
+   commander.metalmake=income[2]
+  end
+ end
+end`));
       definitionChunks.push(compactLua("do\n local defs=UnitDefs or {}\n local u=defs.armbotrail_cort3\n if u then\n  local ragnarok=defs.epic_ragnarok or {}\n  u.metalcost=tonumber(ragnarok.metalcost) or 180000\n  u.energycost=tonumber(ragnarok.energycost) or 2600000\n  local health=tonumber(u.health or u.maxdamage)\n  if health then u.health=math.floor(health*1.5+0.5) end\n  u.name='Purple Cataclysm Launcher'\n  u.firestate=0\n  u.customparams=u.customparams or {}\n  local tip='Huge purple shell: 1,500,000 direct-hit damage; purple Juno pulse; one shot every 30 seconds; 3,700 range. 10,000 metal per shot. Direct hits only; no allied damage. Starts on Hold Fire.'\n  u.description=tip\n  u.customparams.i18nfromunit=nil\n  u.customparams.maxrange=3700\n  for _,lang in ipairs({'en','cs','de','es','fr','hr','it','lt','ru','zh','pl','pt','pt_br','tr','uk','ko','ja','nl','hu','en_us','en_gb'}) do\n   u.customparams['i18n_'..lang..'_humanname']=u.name\n   u.customparams['i18n_'..lang..'_tooltip']=tip\n  end\n  u.maxthisunit=nil\n  for key,w in pairs(u.weapondefs or {}) do\n   if w.customparams and w.customparams.spawns_name then\n    u.weapondefs[key]={name='Purple Cataclysm Shell',weapontype='Cannon',turret=true,range=3700,reloadtime=30,burst=1,projectiles=1,stockpile=false,metalpershot=10000,energypershot=(tonumber(w.energypershot) or 0)*3,weaponvelocity=1250,mygravity=0.22,gravityaffected=true,heightboostfactor=8,hightrajectory=0,accuracy=1,sprayangle=0,size=120,stages=16,separation=0.5,rgbcolor='0.65 0.05 1',rgbcolor2='1 0.3 1',cegtag='arty-heavy-purple',areaofeffect=600,edgeeffectiveness=0.25,explosiongenerator='custom:juno-explo-purple',soundhit='junohit2',soundhitwet='splshbig',soundstart='lrpcshot3',impulsefactor=0,craterareaofeffect=600,craterboost=0,cratermult=0,impactonly=true,noselfdamage=true,avoidfriendly=false,collidefriendly=false,avoidfeature=false,collidefeature=false,waterbounce=false,numbounce=0,damage={default=1500000},customparams={}}\n   end\n  end\n end\n local ragnarok=defs.epic_ragnarok\n if ragnarok then\n  local weapon=(ragnarok.weapondefs or {}).apocalypse_plasma_cannon\n  local slot=(ragnarok.weapons or {})[1]\n  if weapon and slot then\n   weapon.name='Ragnarok Heavy Anti-Air Beam'\n   weapon.weapontype='BeamLaser'\n   weapon.range=2500\n   weapon.reloadtime=6\n   weapon.beamtime=0.2\n   weapon.areaofeffect=0\n   weapon.impactonly=true\n   weapon.noselfdamage=true\n   weapon.collidefriendly=false\n   weapon.avoidfriendly=false\n   weapon.cratermult=0\n   weapon.craterboost=0\n   weapon.burst=1\n   weapon.projectiles=1\n   weapon.damage={default=30000,vtol=90000}\n   slot.onlytargetcategory='SURFACE VTOL'\n   slot.badtargetcategory='NOTAIR'\n   local tip='Heavy anti-air beam. Prioritises aircraft and can engage ground targets. 2,500 range.'\n   ragnarok.description=tip\n   ragnarok.customparams=ragnarok.customparams or {}\n   ragnarok.customparams.i18nfromunit=nil\n   for _,lang in ipairs({'en','cs','de','es','fr','hr','it','lt','ru','zh','pl','pt','pt_br','tr','uk','ko','ja','nl','hu','en_us','en_gb'}) do\n    ragnarok.customparams['i18n_'..lang..'_tooltip']=tip\n   end\n  end\n end\nend"));
-      definitionChunks.push(compactLua("do\n local defs=UnitDefs\n local factions={'arm','cor','leg'}\n local menus={}\n for level=1,10 do\n  local suffix=level==1 and '' or 'lvl'..level\n  local options={}\n  for _,faction in ipairs(factions) do\n   local commander=defs[faction..'com'..suffix]\n   if commander then\n    for _,field in ipairs({'speed','maxvelocity'}) do\n     if tonumber(commander[field]) then commander[field]=tonumber(commander[field])*1.3 end\n    end\n    commander.customparams=commander.customparams or {}\n    commander.customparams.blackouts_commander=faction\n    commander.customparams.blackouts_level=level\n    for _,name in pairs(commander.buildoptions or {}) do\n     local unit=defs[name]\n     if unit and not unit.canfly and (tonumber(unit.speed or unit.maxvelocity) or 0)==0 and\n        not (unit.customparams or {}).wmod_blocked_combat then options[name]=true end\n    end\n   end\n  end\n  local list={}\n  for name in pairs(options) do list[#list+1]=name end\n  table.sort(list)\n  menus[level]=list\n end\n for level,list in ipairs(menus) do\n  local commander=defs[level==1 and 'legcom' or 'legcomlvl'..level]\n  if commander then\n   local options,seen={},{}\n   local slots={}\n   for slot in pairs(commander.buildoptions or {}) do\n    if type(slot)=='number' then slots[#slots+1]=slot end\n   end\n   table.sort(slots)\n   for _,slot in ipairs(slots) do\n    local name=commander.buildoptions[slot]\n    if not seen[name] then options[#options+1]=name seen[name]=true end\n   end\n   for _,name in ipairs(list) do\n    if not seen[name] then options[#options+1]=name end\n   end\n   commander.buildoptions=options\n  end\n end\nend"));
+      definitionChunks.push(compactLua("do\n local defs=UnitDefs\n local factions={'arm','cor','leg'}\n local menus={}\n for level=1,10 do\n  local suffix=level==1 and '' or 'lvl'..level\n  local options={}\n  for _,faction in ipairs(factions) do\n   local commander=defs[faction..'com'..suffix]\n   if commander then\n    for _,field in ipairs({'speed','maxvelocity'}) do\n     if tonumber(commander[field]) then commander[field]=tonumber(commander[field])*1.15 end\n    end\n    commander.customparams=commander.customparams or {}\n    commander.customparams.blackouts_commander=faction\n    commander.customparams.blackouts_level=level\n    for _,name in pairs(commander.buildoptions or {}) do\n     local unit=defs[name]\n     if unit and not unit.canfly and (tonumber(unit.speed or unit.maxvelocity) or 0)==0 and\n        not (unit.customparams or {}).wmod_blocked_combat then options[name]=true end\n    end\n   end\n  end\n  local list={}\n  for name in pairs(options) do list[#list+1]=name end\n  table.sort(list)\n  menus[level]=list\n end\n for level,list in ipairs(menus) do\n  local commander=defs[level==1 and 'legcom' or 'legcomlvl'..level]\n  if commander then\n   local options,seen={},{}\n   local slots={}\n   for slot in pairs(commander.buildoptions or {}) do\n    if type(slot)=='number' then slots[#slots+1]=slot end\n   end\n   table.sort(slots)\n   for _,slot in ipairs(slots) do\n    local name=commander.buildoptions[slot]\n    if not seen[name] then options[#options+1]=name seen[name]=true end\n   end\n   for _,name in ipairs(list) do\n    if not seen[name] then options[#options+1]=name end\n   end\n   commander.buildoptions=options\n  end\n end\nend"));
+      definitionChunks.push(compactLua(`do
+ local walls={
+  armdrag=true,armfdrag=true,armfort=true,armlwall=true,armfirewall=true,
+  cordrag=true,corfdrag=true,corfort=true,cormwall=true,cortyrant=true,
+  legdrag=true,legfdrag=true,legfort=true,legforti=true,legrwall=true,
+ }
+ for name in pairs(walls) do
+  local wall=UnitDefs[name]
+  if wall then
+   wall.customparams=wall.customparams or {}
+   wall.customparams.blackouts_wall=1
+  end
+ end
+ for _,faction in ipairs({'arm','leg'}) do
+  for level=1,10 do
+   local name=faction..'com'..(level==1 and '' or 'lvl'..level)
+   local commander=UnitDefs[name]
+   if commander then
+    local params=commander.customparams
+    local parents=params.parentsinheritxp or ''
+    local children=params.childreninheritxp or ''
+    if parents:find('TURRET',1,true) then params.blackouts_return_turret_xp=1 end
+    if faction=='leg' or children:find('TURRET',1,true) then params.blackouts_grant_turret_xp=1 end
+    params.parentsinheritxp=parents:gsub('TURRET','')
+    params.childreninheritxp=faction=='leg' and '' or children:gsub('TURRET','')
+   end
+  end
+ end
+end`));
     }
+    definitionChunks.push(compactLua(`do
+ local sanctuary=UnitDefs.corgatet3
+ local bulwark=UnitDefs.cordoomt4
+ local repulsor=sanctuary and (sanctuary.weapondefs or {}).repulsor
+ if bulwark and repulsor and repulsor.shield then
+  local weapon={}
+  for key,value in pairs(repulsor) do weapon[key]=value end
+  local shield={}
+  for key,value in pairs(repulsor.shield) do shield[key]=value end
+  weapon.shield=shield
+  weapon.range=400
+  shield.radius=400
+  shield.power=25000
+  shield.startingpower=25000
+  shield.powerregen=250
+  shield.powerregenenergy=1100
+  shield.alpha=0.03
+  shield.visiblerepulse=false
+  bulwark.weapondefs.bulwark_shield=weapon
+  bulwark.weapons[#bulwark.weapons+1]={def='BULWARK_SHIELD',onlytargetcategory='NOTSUB'}
+  local params=bulwark.customparams
+  params.shield_radius=shield.radius
+  params.shield_power=shield.power
+ end
+ if sanctuary then sanctuary.maxthisunit=0 end
+ for _,unit in pairs(UnitDefs) do
+  local options=unit.buildoptions
+  if options then
+   for i=#options,1,-1 do
+    if options[i]=='corgatet3' then table.remove(options,i) end
+   end
+  end
+ end
+end`));
+    definitionChunks.push(compactLua(`do
+ local defs=UnitDefs
+ local chassis=defs.cordoomt4 or defs.cordoomt3
+ if chassis then
+  local function copy(value)
+   if type(value)~='table' then return value end
+   local result={}
+   for key,item in pairs(value) do result[key]=copy(item) end
+   return result
+  end
+  local function weapon(unit)
+   local slot=unit and unit.weapons and unit.weapons[1]
+   return slot and unit.weapondefs and unit.weapondefs[slot.def:lower()],slot
+  end
+  local function replace(id,name,description,main,groundSlot,airUnit)
+   local antiAir,airSlot=weapon(airUnit)
+   if not defs[id] or not main or (airUnit and not antiAir) then return end
+   local tower=copy(chassis)
+   tower.name=name
+   tower.description=description
+   tower.weapondefs={ground_weapon=copy(main)}
+   tower.weapons={copy(groundSlot)}
+   tower.weapons[1].def='GROUND_WEAPON'
+   tower.weapons[1].onlytargetcategory='SURFACE'
+   if antiAir then
+    tower.weapondefs.anti_air=copy(antiAir)
+    tower.weapons[2]=copy(airSlot)
+    tower.weapons[2].def='ANTI_AIR'
+    tower.weapons[2].onlytargetcategory='VTOL'
+   end
+   tower.nochasecategory=''
+   local params=tower.customparams or {}
+   tower.customparams=params
+   params.i18nfromunit=nil
+   params.shield_radius=nil
+   params.shield_power=nil
+   params.maxrange=math.max(tonumber(main.range) or 0,tonumber(antiAir and antiAir.range) or 0)
+   for key in pairs(params) do
+    if key:match('^i18n_.+_humanname$') then params[key]=name end
+    if key:match('^i18n_.+_tooltip$') then params[key]=description end
+   end
+   params.i18n_en_humanname=name
+   params.i18n_en_tooltip=description
+   defs[id]=tower
+   return tower
+  end
+  local lightning,bastionSlot=weapon(defs.epic_bastion)
+  if not lightning then
+   lightning={areaofeffect=8,avoidfeature=false,beamttl=1,burst=10,burstrate=0.03333,craterareaofeffect=0,craterboost=0,cratermult=0,duration=1,edgeeffectiveness=0.15,explosiongenerator="custom:genericshellexplosion-medium-lightning2",firestarter=50,impactonly=1,impulsefactor=0,intensity=24,name="Midas Torrent",noselfdamage=true,range=1000,reloadtime=1,rgbcolor="1.0 0.9 0.1",soundhit="lashit",soundhitwet="sizzle",soundstart="lghthvy1",soundtrigger=true,thickness=2,turret=true,weapontype="LightningCannon",weaponvelocity=450,customparams={spark_ceg="genericshellexplosion-splash-lightning",spark_forkdamage="0.33",spark_maxunits="5",spark_range="60",},damage={default=446,vtol=43,},}
+   lightning.collidefriendly=false
+   lightning.avoidfriendly=false
+   bastionSlot={fastautoretargeting=true}
+  end
+  replace('legbastiont4','Leg Bastion','Midas Torrent lightning and Pluto anti-air flak.',lightning,bastionSlot,defs.legflak)
+  local tachyon,pulsarSlot=weapon(defs.armannit4)
+  local pulsar=replace('armannit4','Legendary Pulsar','Tachyon bursts with T3 construction assist and repair.',tachyon,pulsarSlot)
+  if pulsar then
+   local nano=defs.armnanotct3 or {}
+   pulsar.builder=true
+   pulsar.canassist=true
+   pulsar.canrepair=true
+   pulsar.workertime=nano.workertime or 1900
+   pulsar.builddistance=nano.builddistance or 550
+  end
+ end
+end`));
     // SCAV_COMMANDER_GANTRY: run after the final combat and support-menu filters.
     {const code=compactLua("-- Separate shared gantry, available to Armada, Cortex and Legion constructors.\ndo\n local defs=UnitDefs or {}\n local boss=defs.scavengerbossv4\n local base=defs.corgant_scav or defs.corgant\n if boss and base then\n  local function copy(t)\n   local result={}\n   for k,v in pairs(t) do result[k]=type(v)=='table' and copy(v) or v end\n   return result\n  end\n  local id='wmod_scav_commander_gantry'\n  local gantry=copy(base)\n  gantry.name='Scavenger Commander Gantry'\n  gantry.description='Builds the Epic Scavenger Commander.'\n  gantry.buildoptions={'scavengerbossv4'}\n  gantry.maxthisunit=nil\n  gantry.customparams=gantry.customparams or {}\n  gantry.customparams.wmod_blocked_combat=nil\n  gantry.customparams.i18nfromunit=nil\n  gantry.customparams.i18n_en_humanname=gantry.name\n  gantry.customparams.i18n_en_tooltip=gantry.description\n  defs[id]=gantry\n  boss.maxthisunit=nil\n  boss.customparams=boss.customparams or {}\n  boss.customparams.wmod_blocked_combat=nil\n  local t3={armt3aide=true,armt3airaide=true,cort3aide=true,cort3airaide=true,legt3aide=true,legt3airaide=true}\n  for name,u in pairs(defs) do\n   local faction=name:match('^arm') or name:match('^cor') or name:match('^leg')\n   local options=u.buildoptions\n   if faction and u.builder==true and options then\n    local eligible=t3[name]\n    local found=false\n    for _,option in pairs(options) do\n     if option==id then found=true end\n     if option:find('shltx',1,true) or option:find('gant',1,true) or option:find('apt3',1,true) then eligible=true end\n    end\n    if eligible and not found then options[#options+1]=id end\n   end\n  end\n end\nend\n");const last=definitionChunks.length-1;
       if(slotCommand('tweakdefs9',definitionChunks[last]+' '+code).length<=16000)definitionChunks[last]+=' '+code;else definitionChunks.push(code);
@@ -242,15 +382,17 @@
     balance.addEventListener('change', () => { c.blackoutsSettings = balance.checked; save(); });
     const label = el('label', 'tweak-row');
     label.append(balance, el('span', '', 'Enable Blackouts rules'));
-    blackouts.append(label, el('p', 'hint', 'Commanders move 30% faster. Legion commanders gain access to the other factions’ build menus at their level. The Purple Cataclysm Launcher replaces the Cortex Behemoth Launcher and has 50% more health than the Behemoth Launcher, and Epic Ragnarok gets a heavy anti-air beam.'));
-    const gadgetLink = el('a', '', 'Download the BAR gadget for Armada economy and Legion building health');
+    blackouts.append(label, el('p', 'hint', 'Commanders move 15% faster. Legion commanders gain access to the other factions’ build menus at their level. The Purple Cataclysm Launcher replaces the Cortex Behemoth Launcher and has 50% more health than the Behemoth Launcher, and Epic Ragnarok gets a heavy anti-air beam.'));
+    blackouts.append(el('p', 'hint', 'Armada commander income rises with each evolution: 100 energy and 50 metal per second at level 1, up to 360,000 energy and 5,280 metal per second at level 4, before lobby multipliers.'));
+    blackouts.append(el('p', 'hint', 'Armada keeps its wall build options.'));
+    const gadgetLink = el('a', '', 'Download the BAR gadget for construction bonuses');
     gadgetLink.href = 'blackouts-game-settings-gadget.lua';
     gadgetLink.download = 'blackouts-game-settings-gadget.lua';
-    blackouts.append(el('p', 'hint', 'Builder bonuses require the synced gadget in the hosted BAR game. Bonuses follow your team’s starting commander faction and apply with any constructor. For Armada, economy buildings cost 15% less, take 15% less build time, and have 20% less health. For Legion, buildings gain 5% health per level above one of your highest-level living Legion commander when construction starts, up to 20%. '), gadgetLink);
+    blackouts.append(el('p', 'hint', 'Construction bonuses require the synced gadget in the hosted BAR game. Armada economy buildings cost 15% less, take 15% less build time, and have 20% less health. Legion commanders pass XP to the gun emplacements they build. Walls built by Armada or Legion commanders receive zero commander XP. '), gadgetLink);
     controls.append(blackouts);
     field('Arsenal rules',[['will','Willboizy’s custom arsenal'],['community','Community NuttyB arsenal']],c.profile,v=>{c.profile=v;});
-    field('Difficulty',[['normal','Normal - original Legendary Bastion'],['custom','My own settings'],['easy','Easy - 1.3x health'],['medium','Medium - 1.5x health']],c.difficulty||'normal',v=>{applyDifficultyPackage(v);});
-    controls.append(el('p','hint','Normal uses the original Legendary Bastion. The Behemoth Launcher is the default outside Blackouts rules. The Starfall fix applies to every difficulty package.'));
+    field('Difficulty',[['normal','Normal'],['custom','My own settings'],['easy','Easy - 1.3x health'],['medium','Medium - 1.5x health']],c.difficulty||'normal',v=>{applyDifficultyPackage(v);});
+    controls.append(el('p','hint','The Behemoth Launcher is the default outside Blackouts rules. The Starfall fix applies to every difficulty package.'));
     for(const [id,label] of [['rebalance','Rebalance standard Ragnarok, Calamity and Starfall']]){
       const l=el('label','tweak-row'),box=el('input');box.type='checkbox';box.checked=!!c.extras[id];box.addEventListener('change',()=>{c.extras[id]=box.checked;save();});l.append(box,el('span','',label));controls.append(l);
     }

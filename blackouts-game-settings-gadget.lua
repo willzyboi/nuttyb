@@ -1,7 +1,7 @@
 function gadget:GetInfo()
     return {
         name = "Blackouts Game Settings",
-        desc = "Starting-faction construction bonuses for Nutty B",
+        desc = "Armada economy and commander turret XP bonuses for Nutty B",
         layer = 0,
         enabled = true,
     }
@@ -10,27 +10,24 @@ end
 if not gadgetHandler:IsSyncedCode() then return end
 
 local GetUnitDefID = Spring.GetUnitDefID
-local GetTeamUnitsByDefs = Spring.GetTeamUnitsByDefs
+local GetUnitExperience = Spring.GetUnitExperience
+local SetUnitExperience = Spring.SetUnitExperience
 local startingFaction = {}
-local legionCommanders = {}
+local turretDefs = {}
+local turretLinks = {}
 
 for id, def in pairs(UnitDefs) do
-    if (def.customParams or {}).blackouts_commander == "leg" then
-        legionCommanders[#legionCommanders + 1] = id
+    if def.speed == 0 then
+        for _, slot in ipairs(def.weapons or {}) do
+            local weapon = WeaponDefs[slot.weaponDef]
+            if weapon and weapon.type ~= "Shield" then
+                turretDefs[id] = true
+                break
+            end
+        end
     end
 end
 
-local function legionCommanderLevel(teamID)
-    local level = 1
-    for _, commanderID in ipairs(GetTeamUnitsByDefs(teamID, legionCommanders) or {}) do
-        local _, _, _, _, progress = Spring.GetUnitHealth(commanderID)
-        local def = UnitDefs[GetUnitDefID(commanderID)]
-        if def and progress == 1 then
-            level = math.max(level, tonumber(def.customParams.blackouts_level) or 1)
-        end
-    end
-    return level
-end
 local GetUnitHealth = Spring.GetUnitHealth
 local SetUnitCosts = Spring.SetUnitCosts
 local SetUnitHealth = Spring.SetUnitHealth
@@ -54,25 +51,72 @@ function gadget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
         startingFaction[unitTeam] = params.blackouts_commander
     end
 
-    local faction = startingFaction[unitTeam]
-    if not builderID or not def.isBuilding or (faction ~= "arm" and faction ~= "leg") then return end
-    local health, maxHealth, _, _, progress = GetUnitHealth(unitID)
-    if not progress or progress >= 1 or not maxHealth or maxHealth <= 0 then return end
-    local factor
-    if faction == "arm" and isEconomy(def) then
-        SetUnitCosts(unitID, {
-            metalCost = def.metalCost * 0.85,
-            energyCost = def.energyCost * 0.85,
-            buildTime = def.buildTime * 0.85,
-        })
-        factor = 0.8
-    elseif faction == "leg" then
-        local level = legionCommanderLevel(unitTeam)
-        factor = 1 + math.min(0.2, math.max(0, level - 1) * 0.05)
+    local builder = builderID and UnitDefs[GetUnitDefID(builderID)]
+    local builderParams = builder and builder.customParams or {}
+    local grantXP = builderParams.blackouts_grant_turret_xp and not params.blackouts_wall
+    if turretDefs[unitDefID] and (grantXP or builderParams.blackouts_return_turret_xp) then
+        turretLinks[unitID] = { builderID = builderID, grantXP = grantXP }
     end
 
-    if factor and factor ~= 1 then
-        SetUnitMaxHealth(unitID, maxHealth * factor)
-        SetUnitHealth(unitID, { health = health * factor })
+    local faction = startingFaction[unitTeam]
+    if faction ~= "arm" or not builderID or not def.isBuilding or params.blackouts_wall or not isEconomy(def) then return end
+    local health, maxHealth, _, _, progress = GetUnitHealth(unitID)
+    if not progress or progress >= 1 or not maxHealth or maxHealth <= 0 then return end
+    SetUnitCosts(unitID, {
+        metalCost = def.metalCost * 0.85,
+        energyCost = def.energyCost * 0.85,
+        buildTime = def.buildTime * 0.85,
+    })
+    SetUnitMaxHealth(unitID, maxHealth * 0.8)
+    SetUnitHealth(unitID, { health = health * 0.8 })
+end
+
+function gadget:UnitFinished(unitID)
+    local link = turretLinks[unitID]
+    if not link then return end
+    local builder = UnitDefs[GetUnitDefID(link.builderID)]
+    local params = builder and builder.customParams or {}
+    if link.grantXP and builder then
+        local inheritedXP = (GetUnitExperience(link.builderID) or 0)
+            * (tonumber(params.inheritcreationxpmultiplier) or 1)
+        SetUnitExperience(unitID, inheritedXP)
+    end
+    if params.blackouts_return_turret_xp then
+        -- Count only XP earned after the initial grant.
+        link.previousXP = GetUnitExperience(unitID) or 0
+    else
+        turretLinks[unitID] = nil
+    end
+end
+
+function gadget:GameFrame(frame)
+    if frame % 30 ~= 0 then return end
+    for unitID, link in pairs(turretLinks) do
+        if link.previousXP then
+            local xp = GetUnitExperience(unitID)
+            local builder = UnitDefs[GetUnitDefID(link.builderID)]
+            if xp and builder and xp > link.previousXP then
+                local turret = UnitDefs[GetUnitDefID(unitID)]
+                local rate = tonumber(builder.customParams.inheritxpratemultiplier) or 1
+                local gained = (xp - link.previousXP) * (turret.power or 1) / (builder.power or 1) * rate
+                SetUnitExperience(link.builderID, (GetUnitExperience(link.builderID) or 0) + gained)
+                link.previousXP = xp
+            end
+        end
+    end
+end
+
+function gadget:UnitDestroyed(unitID, unitDefID)
+    turretLinks[unitID] = nil
+    if not UnitDefs[unitDefID].customParams.blackouts_commander then return end
+    local evolvedID = Spring.GetUnitRulesParam(unitID, "unit_evolved")
+    for turretID, link in pairs(turretLinks) do
+        if link.builderID == unitID then
+            if evolvedID then
+                link.builderID = evolvedID
+            else
+                turretLinks[turretID] = nil
+            end
+        end
     end
 end
