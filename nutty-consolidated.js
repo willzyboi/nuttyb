@@ -243,18 +243,33 @@ end`));
    lightning.avoidfriendly=false
    bastionSlot={fastautoretargeting=true}
   end
-  local bastion=replace('legbastiont4','Leg Bastion','Midas Torrent lightning and heavy Pluto anti-air flak (8,000 base DPS against aircraft).',lightning,bastionSlot,defs.legflak)
+  local bastion=replace('legbastiont4','Leg Bastion','Midas Torrent lightning and rapid heavy Pluto anti-air flak (64,000 base DPS against aircraft).',lightning,bastionSlot,defs.legflak)
   if bastion then
+   -- Do not let allied towers block aiming or intercept either weapon.
+   for _,gun in pairs(bastion.weapondefs) do
+    gun.avoidfriendly=false
+    gun.collidefriendly=false
+   end
    local flak=bastion.weapondefs.anti_air
-   flak.damage.vtol=flak.damage.vtol*2
+   local reload=math.max(1,math.floor((tonumber(flak.reloadtime) or 1)*15+0.5))/30
+   local rounds=math.max(1,tonumber(flak.burst) or 1)*math.max(1,tonumber(flak.projectiles) or 1)
+   flak.reloadtime=reload
+   flak.damage.vtol=64000*reload/rounds
   end
   local tachyon,pulsarSlot=weapon(defs.armannit4)
   local pulsar=replace('armannit4','Legendary Pulsar','Tachyon bursts with T3 construction assist and repair.',tachyon,pulsarSlot)
   if pulsar then
    local nano=defs.armnanotct3 or {}
    pulsar.builder=true
+   pulsar.yardmap=''
+   pulsar.buildoptions={}
+   pulsar.canmove=false
    pulsar.canassist=true
    pulsar.canrepair=true
+   pulsar.canguard=true
+   pulsar.canfight=true
+   pulsar.canpatrol=true
+   pulsar.canstop=true
    pulsar.workertime=nano.workertime or 1900
    pulsar.builddistance=nano.builddistance or 550
   end
