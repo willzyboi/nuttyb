@@ -374,16 +374,6 @@ end`));
     const copyHint=el('span','hint',"← This is Willboizy's lobby preset code — just paste it into your BAR lobby.");copyHint.style.margin='0';copyHint.style.flex='1 1 260px';copyQuick.setAttribute('aria-describedby','willboizy-copy-hint');copyHint.id='willboizy-copy-hint';
     const copyGuide=el('div','toolbar');copyGuide.style.flex='1 1 420px';copyGuide.style.minWidth='0';copyGuide.style.flexWrap='nowrap';copyQuick.style.flexShrink='0';copyGuide.append(copyQuick,copyHint);quick.append(title,loadQuick,copyGuide);controls.append(quick);
 
-    const blackouts = el('details', 'setup-more-presets');
-    blackouts.append(el('summary', '', 'Blackouts Game Settings'));
-    blackouts.append(el('p', 'hint', 'Commanders move 15% faster. Legion commanders gain access to the other factions’ build menus at their level. The Purple Cataclysm Launcher replaces the Cortex Behemoth Launcher and has 50% more health than the Behemoth Launcher, and Epic Ragnarok gets a heavy anti-air beam.'));
-    blackouts.append(el('p', 'hint', 'Armada commander income rises with each evolution: 100 energy and 50 metal per second at level 1, up to 360,000 energy and 5,280 metal per second at level 4, before lobby multipliers.'));
-    blackouts.append(el('p', 'hint', 'Armada keeps its wall build options.'));
-    const gadgetLink = el('a', '', 'Download the BAR gadget for construction bonuses');
-    gadgetLink.href = 'blackouts-game-settings-gadget.lua';
-    gadgetLink.download = 'blackouts-game-settings-gadget.lua';
-    blackouts.append(el('p', 'hint', 'Construction bonuses require the synced gadget in the hosted BAR game. Armada economy buildings cost 15% less, take 15% less build time, and have 20% less health. Legion commanders pass XP to the gun emplacements they build. Walls built by Armada or Legion commanders receive zero commander XP. '), gadgetLink);
-    controls.append(blackouts);
     field('Arsenal rules',[['will','Willboizy’s custom arsenal'],['community','Community NuttyB arsenal']],c.profile,v=>{c.profile=v;});
     field('Difficulty',[['normal','Normal'],['custom','My own settings'],['easy','Easy - 1.3x health'],['medium','Medium - 1.5x health']],c.difficulty||'normal',v=>{applyDifficultyPackage(v);});
     controls.append(el('p','hint','The Starfall fix applies to every difficulty package.'));
