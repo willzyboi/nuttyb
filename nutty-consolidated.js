@@ -180,6 +180,7 @@ end`));
   local params=bulwark.customparams
   params.shield_radius=shield.radius
   params.shield_power=shield.power
+  params.shield_color_mult=0.05
  end
  if sanctuary then
   sanctuary.maxthisunit=nil
