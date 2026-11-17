@@ -159,8 +159,8 @@ end`));
   local shield={}
   for key,value in pairs(repulsor.shield) do shield[key]=value end
   weapon.shield=shield
-  weapon.range=400
-  shield.radius=400
+  weapon.range=800
+  shield.radius=800
   shield.power=25000
   shield.startingpower=25000
   shield.powerregen=250
@@ -203,6 +203,8 @@ end`));
    local tower=copy(chassis)
    tower.name=name
    tower.description=description
+   tower.buildpic=defs[id].buildpic
+   tower.icontype=defs[id].icontype
    tower.weapondefs={ground_weapon=copy(main)}
    tower.weapons={copy(groundSlot)}
    tower.weapons[1].def='GROUND_WEAPON'
@@ -236,7 +238,11 @@ end`));
    lightning.avoidfriendly=false
    bastionSlot={fastautoretargeting=true}
   end
-  replace('legbastiont4','Leg Bastion','Midas Torrent lightning and Pluto anti-air flak.',lightning,bastionSlot,defs.legflak)
+  local bastion=replace('legbastiont4','Leg Bastion','Midas Torrent lightning and heavy Pluto anti-air flak (8,000 base DPS against aircraft).',lightning,bastionSlot,defs.legflak)
+  if bastion then
+   local flak=bastion.weapondefs.anti_air
+   flak.damage.vtol=flak.damage.vtol*2
+  end
   local tachyon,pulsarSlot=weapon(defs.armannit4)
   local pulsar=replace('armannit4','Legendary Pulsar','Tachyon bursts with T3 construction assist and repair.',tachyon,pulsarSlot)
   if pulsar then
@@ -246,6 +252,30 @@ end`));
    pulsar.canrepair=true
    pulsar.workertime=nano.workertime or 1900
    pulsar.builddistance=nano.builddistance or 550
+  end
+ end
+end`));
+    definitionChunks.push(compactLua(`do
+ local colours={
+  legbastiont4={'0.15 1 0.25','0.65 1 0.65','green'},
+  armannit4={'0.2 0.55 1','0.65 0.85 1','blue'},
+  cordoomt4={'1 0.15 0.12','1 0.6 0.55','red'},
+ }
+ for name,colour in pairs(colours) do
+  local tower=UnitDefs[name]
+  if tower then
+   for _,gun in pairs(tower.weapondefs or {}) do
+    if gun.shield then
+     gun.shield.goodcolor={1,0.15,0.12,gun.shield.alpha}
+     gun.shield.badcolor={0.6,0.05,0.03,gun.shield.alpha}
+    else
+     local impact='laserhit-small-'..colour[3]
+     gun.rgbcolor=colour[1]
+     gun.rgbcolor2=colour[2]
+     gun.explosiongenerator='custom:'..impact
+     if gun.customparams and gun.customparams.spark_ceg then gun.customparams.spark_ceg=impact end
+    end
+   end
   end
  end
 end`));
