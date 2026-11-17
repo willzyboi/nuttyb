@@ -140,10 +140,18 @@ end`));
     local params=commander.customparams
     local parents=params.parentsinheritxp or ''
     local children=params.childreninheritxp or ''
-    if parents:find('TURRET',1,true) then params.blackouts_return_turret_xp=1 end
-    if faction=='leg' or children:find('TURRET',1,true) then params.blackouts_grant_turret_xp=1 end
-    params.parentsinheritxp=parents:gsub('TURRET','')
-    params.childreninheritxp=faction=='leg' and '' or children:gsub('TURRET','')
+    if faction=='leg' then
+     params.blackouts_return_turret_xp=nil
+     params.blackouts_grant_turret_xp=nil
+     params.parentsinheritxp=parents:find('TURRET',1,true) and parents or parents..' TURRET'
+     params.childreninheritxp='TURRET'
+     params.inheritxpratemultiplier=params.inheritxpratemultiplier or 0.5
+    else
+     if parents:find('TURRET',1,true) then params.blackouts_return_turret_xp=1 end
+     if children:find('TURRET',1,true) then params.blackouts_grant_turret_xp=1 end
+     params.parentsinheritxp=parents:gsub('TURRET','')
+     params.childreninheritxp=children:gsub('TURRET','')
+    end
    end
   end
  end
@@ -173,14 +181,10 @@ end`));
   params.shield_radius=shield.radius
   params.shield_power=shield.power
  end
- if sanctuary then sanctuary.maxthisunit=0 end
- for _,unit in pairs(UnitDefs) do
-  local options=unit.buildoptions
-  if options then
-   for i=#options,1,-1 do
-    if options[i]=='corgatet3' then table.remove(options,i) end
-   end
-  end
+ if sanctuary then
+  sanctuary.maxthisunit=nil
+  sanctuary.explodeas=''
+  sanctuary.selfdestructas=''
  end
 end`));
     definitionChunks.push(compactLua(`do
