@@ -257,9 +257,9 @@ end`));
    flak.damage.vtol=64000*reload/rounds
   end
   local tachyon,pulsarSlot=weapon(defs.armannit4)
-  local pulsar=replace('armannit4','Legendary Pulsar','Tachyon bursts with T3 construction assist and repair.',tachyon,pulsarSlot)
+  local pulsar=replace('armannit4','Legendary Pulsar','Tachyon bursts with T2 construction-turret build power for assist and repair. No shield.',tachyon,pulsarSlot)
   if pulsar then
-   local nano=defs.armnanotct3 or {}
+   local nano=defs.armnanotct2 or defs.armnanotc or {}
    pulsar.builder=true
    pulsar.yardmap=''
    pulsar.buildoptions={}
@@ -270,8 +270,8 @@ end`));
    pulsar.canfight=true
    pulsar.canpatrol=true
    pulsar.canstop=true
-   pulsar.workertime=nano.workertime or 1900
-   pulsar.builddistance=nano.builddistance or 550
+   pulsar.workertime=nano.workertime or 600
+   pulsar.builddistance=nano.builddistance or 500
   end
  end
 end`));
@@ -336,6 +336,56 @@ end`));
     commander.buildoptions=options
    end
   end
+ end
+end`));
+    definitionChunks.push(compactLua(`do
+ local defs=UnitDefs
+ local walls={cordoomt4=true,legbastiont4=true,armannit4=true}
+ local guns={epic_ragnarok=true,epic_calamity=true,epic_starfall=true,armbotrail_cort3=true}
+ local function available(name)
+  local u=defs[name]
+  return u and tonumber(u.maxthisunit)~=0 and not (u.customparams or {}).wmod_blocked_combat
+ end
+ local function tip(u,text)
+  u.description=text
+  local p=u.customparams or {} u.customparams=p p.i18nfromunit=nil
+  for key in pairs(p) do if key:match('^i18n_.+_tooltip$') then p[key]=text end end
+  p.i18n_en_tooltip=text
+ end
+ local function isgun(u)
+  if u.canfly or (tonumber(u.speed or u.maxvelocity) or 0)~=0 then return false end
+  for _,slot in pairs(u.weapons or {}) do
+   local w=slot.def and (u.weapondefs or {})[slot.def:lower()]
+   if w and (w.weapontype or ''):lower()~='shield' then return true end
+  end
+  return false
+ end
+ for _,faction in ipairs({'cor','leg'}) do
+  for level=1,10 do
+   local u=defs[faction..'com'..(level==1 and '' or 'lvl'..level)]
+   if u then
+    local options,seen={},{}
+    local function add(name) if not seen[name] then options[#options+1]=name seen[name]=true end end
+    for _,name in pairs(u.buildoptions or {}) do
+     local target=defs[name]
+     local wall=walls[name] or target and (target.customparams or {}).blackouts_wall
+     if faction=='cor' then
+      if not guns[name] and (not target or wall or not isgun(target)) then add(name) end
+     elseif not wall then add(name) end
+    end
+    local additions=faction=='cor' and walls or guns
+    local sorted={} for name in pairs(additions) do sorted[#sorted+1]=name end table.sort(sorted)
+    for _,name in ipairs(sorted) do if available(name) then add(name) end end
+    u.buildoptions=options
+    tip(u,faction=='cor' and 'Cortex frontline commander: builds all three legendary wall variants; cannot build gun structures or Cataclysm Launchers.' or 'Legion gun-builder commander: builds all four available heavy guns and other gun structures; cannot build walls. Native turret XP sharing applies to eligible gun structures.')
+   end
+  end
+ end
+ if defs.cordoomt4 then tip(defs.cordoomt4,'Legendary Bulwark: ground defence with an 800-radius, 25,000-power shield. Shield requires the unit to remain active; closing switches it off.') end
+ if defs.legbastiont4 then tip(defs.legbastiont4,'Legendary Bastion: Midas Torrent ground lightning and rapid Pluto flak, 64,000 base aircraft DPS. No shield. Weapons ignore allied towers.') end
+ for name in pairs(guns) do
+  local u=defs[name]
+  if u then tip(u,(u.description or (u.customparams or {}).i18n_en_tooltip or u.name or name)..' Built by Legion commanders; unavailable to Cortex commanders. Eligible for native Legion turret XP sharing.') end
  end
 end`));
     // SCAV_COMMANDER_GANTRY: run after the final combat and support-menu filters.
