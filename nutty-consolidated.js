@@ -257,7 +257,7 @@ end`));
    flak.damage.vtol=64000*reload/rounds
   end
   local tachyon,pulsarSlot=weapon(defs.armannit4)
-  local pulsar=replace('armannit4','Legendary Pulsar','Tachyon bursts with T2 construction-turret build power for assist and repair. No shield.',tachyon,pulsarSlot)
+  local pulsar=replace('armannit4','Legendary Pulsar','Tachyon wall; T2 repair assist',tachyon,pulsarSlot)
   if pulsar then
    local nano=defs.armnanotct2 or defs.armnanotc or {}
    pulsar.builder=true
@@ -377,15 +377,59 @@ end`));
     local sorted={} for name in pairs(additions) do sorted[#sorted+1]=name end table.sort(sorted)
     for _,name in ipairs(sorted) do if available(name) then add(name) end end
     u.buildoptions=options
-    tip(u,faction=='cor' and 'Cortex frontline commander: builds all three legendary wall variants; cannot build gun structures or Cataclysm Launchers.' or 'Legion gun-builder commander: builds all four available heavy guns and other gun structures; cannot build walls. Native turret XP sharing applies to eligible gun structures.')
+    tip(u,faction=='cor' and 'Wall builder; no gun structures' or 'Gun builder; no walls')
    end
   end
  end
- if defs.cordoomt4 then tip(defs.cordoomt4,'Legendary Bulwark: ground defence with an 800-radius, 25,000-power shield. Shield requires the unit to remain active; closing switches it off.') end
- if defs.legbastiont4 then tip(defs.legbastiont4,'Legendary Bastion: Midas Torrent ground lightning and rapid Pluto flak, 64,000 base aircraft DPS. No shield. Weapons ignore allied towers.') end
+ for level=1,10 do
+  local u=defs['armcom'..(level==1 and '' or 'lvl'..level)]
+  if u then tip(u,'Economy commander') end
+ end
+ if defs.cordoomt4 then tip(defs.cordoomt4,'Shield wall; shield off when closed') end
+ if defs.legbastiont4 then tip(defs.legbastiont4,'Lightning and heavy anti-air wall') end
+ local gunTips={epic_ragnarok='Heavy anti-air beam',epic_calamity='Heavy siege artillery',epic_starfall='Rift Orb siege cannon',armbotrail_cort3='Cataclysm launcher; starts Hold Fire'}
  for name in pairs(guns) do
   local u=defs[name]
-  if u then tip(u,(u.description or (u.customparams or {}).i18n_en_tooltip or u.name or name)..' Built by Legion commanders; unavailable to Cortex commanders. Eligible for native Legion turret XP sharing.') end
+  if u then tip(u,gunTips[name]) end
+ end
+end`));
+    // Keep defence captions within one short line; BAR adds live stats below.
+    definitionChunks.push(compactLua(`do
+ local captions={
+  cordoomt4='Shield wall; shield off when closed',
+  legbastiont4='Lightning and heavy anti-air wall',
+  armannit4='Tachyon wall; T2 repair assist',
+  epic_bastion='Chain-lightning defence',
+  epic_elysium='Area shield',
+  corgatet3='Area shield; no death explosion',
+  epic_ragnarok='Heavy anti-air beam',
+  epic_calamity='Heavy siege artillery',
+  epic_starfall='Rift Orb siege cannon',
+  armbotrail_cort3='Cataclysm launcher; starts Hold Fire',
+  legflak='Anti-air flak turret',
+  steel_dome='Anti-air defence',
+ }
+ for name,u in pairs(UnitDefs) do
+  local p=u.customparams or {}
+  local caption=captions[name]
+  local static=not u.canfly and (tonumber(u.speed or u.maxvelocity) or 0)==0
+  local player=name:match('^arm') or name:match('^cor') or name:match('^leg') or name:match('^epic_') or name=='steel_dome'
+  if not caption and static and player and next(u.weapons or {}) then
+   local old=p.i18n_en_tooltip or u.description or u.tooltip or ''
+   if type(old)=='string' and (#old>42 or old:find('[\\r\\n]')) then
+    local shield,armed=false,false
+    for _,w in pairs(u.weapondefs or {}) do
+     if w.shield or (w.weapontype or ''):lower()=='shield' then shield=true else armed=true end
+    end
+    caption=shield and (armed and 'Armed shield defence' or 'Area shield') or 'Defensive weapon structure'
+   end
+  end
+  if caption then
+   u.customparams=p p.i18nfromunit=nil
+   u.description=caption u.tooltip=caption
+   for key in pairs(p) do if key:match('^i18n_.+_tooltip$') then p[key]=caption end end
+   p.i18n_en_tooltip=caption
+  end
  end
 end`));
     // SCAV_COMMANDER_GANTRY: run after the final combat and support-menu filters.
