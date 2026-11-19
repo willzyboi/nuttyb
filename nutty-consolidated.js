@@ -256,10 +256,45 @@ end`));
    flak.reloadtime=reload
    flak.damage.vtol=64000*reload/rounds
   end
+  local original=defs.armannit4 and copy(defs.armannit4)
+  if original then
+   original.name='Legendary Pulsar'
+   original.description='Rapid-fire tachyon defence'
+   original.builder=false
+   original.buildoptions={}
+   original.onoffable=true
+   original.activatewhenbuilt=true
+   original.script='Units/ARMANNI.cob'
+   original.customparams=original.customparams or {}
+   original.customparams.i18nfromunit=nil
+   for key in pairs(original.customparams) do
+    if key:match('^i18n_.+_humanname$') then original.customparams[key]=original.name end
+    if key:match('^i18n_.+_tooltip$') then original.customparams[key]=original.description end
+   end
+   original.customparams.i18n_en_humanname=original.name
+   original.customparams.i18n_en_tooltip=original.description
+   defs.wmod_legendary_pulsar=original
+   for _,u in pairs(defs) do
+    if u.buildoptions then
+     local found,wall=false,false
+     for _,id in pairs(u.buildoptions) do
+      if id=='wmod_legendary_pulsar' then found=true end
+      if id=='armannit4' then wall=true end
+     end
+     if wall and not found then u.buildoptions[#u.buildoptions+1]='wmod_legendary_pulsar' end
+    end
+   end
+  end
   local tachyon,pulsarSlot=weapon(defs.armannit4)
-  local pulsar=replace('armannit4','Legendary Pulsar','Tachyon wall; T2 repair assist',tachyon,pulsarSlot)
+  local pulsar=replace('armannit4','Hardened Construction Wall Turret','Construction wall; T3 assist, range 100',tachyon,pulsarSlot)
   if pulsar then
-   local nano=defs.armnanotct2 or defs.armnanotc or {}
+   local nano=defs.armnanotct3 or {}
+   pulsar.activatewhenbuilt=false
+   pulsar.onoffable=false
+   pulsar.canattack=false
+   pulsar.weapons={}
+   pulsar.weapondefs={}
+   pulsar.customparams.maxrange=nil
    pulsar.builder=true
    pulsar.yardmap=''
    pulsar.buildoptions={}
@@ -270,8 +305,8 @@ end`));
    pulsar.canfight=true
    pulsar.canpatrol=true
    pulsar.canstop=true
-   pulsar.workertime=nano.workertime or 600
-   pulsar.builddistance=nano.builddistance or 500
+   pulsar.workertime=nano.workertime or 1900
+   pulsar.builddistance=100
   end
  end
 end`));
@@ -399,7 +434,8 @@ end`));
  local captions={
   cordoomt4='Shield wall; shield off when closed',
   legbastiont4='Lightning and heavy anti-air wall',
-  armannit4='Tachyon wall; T2 repair assist',
+  armannit4='Construction wall; T3 assist, range 100',
+  wmod_legendary_pulsar='Rapid-fire tachyon defence',
   epic_bastion='Chain-lightning defence',
   epic_elysium='Area shield',
   corgatet3='Area shield; no death explosion',
